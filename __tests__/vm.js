@@ -1,4 +1,4 @@
-var VM = require('../lib/vm');
+import VM from '../lib/vm.js';
 
 describe('VM', function() {
 

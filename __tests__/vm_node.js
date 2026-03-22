@@ -1,12 +1,21 @@
-var Template = require('../lib/template');
-var FS = require('fs');
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'node:module';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const customRequire = createRequire(import.meta.url);
+import VMNode from '../lib/vm_node.js';
+import Template from '../lib/template.js';
+import FS from 'fs';
+import slm from '../lib/slm.js';
+const { compile } = slm;
 
 describe('VMNode', function() {
   var fixture = {};
 
   beforeEach(function() {
     fixture = {};
-    fixture.template = new Template(require('../lib/vm_node'));
+    fixture.template = new Template(VMNode);
     fixture.VM = fixture.template.VM;
     fixture.vm = new fixture.VM();
     fixture.vm.resetCache();
@@ -186,11 +195,11 @@ describe('VMNode', function() {
   test('test require', function() {
     var options = {
       basePath: '/views',
-      require: module.require,
+      require: customRequire,
     };
 
     options.filename = '/views/forms/form.slm';
-    var src = ['- var p = require("path")', 'p = p.extname("super.slm")'].join(
+    var src = ['- var p = require("path");', 'p = p.extname("super.slm")'].join(
       '\n',
     );
 
@@ -298,8 +307,6 @@ describe('VMNode', function() {
 
     var src = FS.readFileSync(options.filename, 'utf8');
 
-    var compile = require('../lib/slm').compile;
-
     var fn1 = compile(src, options);
     var res1 = fn1({});
     options.useCache = true;
@@ -322,19 +329,17 @@ describe('VMNode', function() {
 
     var src = FS.readFileSync(options.filename, 'utf8');
 
-    var compile = require('../lib/slm').compile;
-
     var fn1 = compile(src, options);
     expect(function() {
       fn1({});
-    }).toThrowError(
+    }).toThrow(
       'the "basePath" option is required to use with "absolute" paths',
     );
 
     var fn2 = compile(src, {});
     expect(function() {
       fn2({});
-    }).toThrowError(
+    }).toThrow(
       'the "filename" option is required to use with "relative" paths',
     );
   });

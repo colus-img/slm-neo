@@ -1,4 +1,4 @@
-var Parser = require('../lib/parser');
+import Parser from '../lib/parser.js';
 
 
 describe('Parser', function() {

@@ -1,4 +1,4 @@
-var Brackets = require('../../lib/filters/brackets');
+import Brackets from '../../lib/filters/brackets.js';
 
 describe('Brackets', function() {
 

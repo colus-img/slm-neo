@@ -1,4 +1,4 @@
-var ControlFlow = require('../../lib/filters/control_flow');
+import ControlFlow from '../../lib/filters/control_flow.js';
 
 describe('ControlFlow', function() {
 

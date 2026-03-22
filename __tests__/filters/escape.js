@@ -1,4 +1,4 @@
-var Escape = require('../../lib/filters/escape');
+import Escape from '../../lib/filters/escape.js';
 
 describe('Escape', function() {
 

@@ -1,12 +1,13 @@
-var Template = require('../../lib/template');
-var assertHtml = require('../helper').assertHtml;
-var assertSyntaxError = require('../helper').assertSyntaxError;
+import VMNode from '../../lib/vm_node.js';
+import Template from '../../lib/template.js';
+import { assertHtml } from '../helper.js';
+import { assertSyntaxError } from '../helper.js';
 
 describe('Parser errors', function() {
 
   var template;
 
-  beforeEach(function() { template = new Template(require('../../lib/vm_node')); });
+  beforeEach(function() { template = new Template(VMNode); });
 
   test('correct filename', function() {
     assertSyntaxError(template, [

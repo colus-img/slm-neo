@@ -1,4 +1,4 @@
-var Filter = require('../lib/filter');
+import Filter from '../lib/filter.js';
 
 
 describe('Filter', function() {

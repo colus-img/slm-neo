@@ -1,12 +1,13 @@
-var Template = require('../../lib/template');
-var assertHtml = require('../helper').assertHtml;
+import VMNode from '../../lib/vm_node.js';
+import Template from '../../lib/template.js';
+import { assertHtml } from '../helper.js';
 
 describe('Html structure', function() {
 
   var template;
 
   beforeEach(function() {
-    template = new Template(require('../../lib/vm_node'));
+    template = new Template(VMNode);
   });
 
   test('simple render', function() {

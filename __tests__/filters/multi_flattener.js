@@ -1,4 +1,4 @@
-var MultiFlattener = require('../../lib/filters/multi_flattener');
+import MultiFlattener from '../../lib/filters/multi_flattener.js';
 
 describe('MultiFlattener', function() {
 

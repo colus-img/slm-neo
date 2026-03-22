@@ -1,10 +1,11 @@
-var Template = require('../../lib/template');
-var assertHtml = require('../helper').assertHtml;
+import VMNode from '../../lib/vm_node.js';
+import Template from '../../lib/template.js';
+import { assertHtml } from '../helper.js';
 
 describe('Code structure', function() {
   var template;
 
-  beforeEach(function() { template = new Template(require('../../lib/vm_node')); });
+  beforeEach(function() { template = new Template(VMNode); });
 
   test('render with conditional', function() {
     assertHtml(template, [
@@ -70,7 +71,7 @@ describe('Code structure', function() {
 
   test('render with case', function() {
     assertHtml(template, [
-      '- var url = require("url")',
+      '- var url = require("url");',
       'p',
       '  - switch(42)',
       '    - case 41:',
@@ -195,7 +196,7 @@ describe('Code structure', function() {
       ].join('\n');
     expect(function() {
       template.render(src, {}, {});
-    }).toThrowError('Missing open brace \"(\" in `this.block)`');
+    }).toThrow('Missing open brace \"(\" in `this.block)`');
   });
 
   test('content', function() {

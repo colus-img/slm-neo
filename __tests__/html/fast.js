@@ -1,4 +1,4 @@
-var Filter = require('../../lib/html/fast');
+import Filter from '../../lib/html/fast.js';
 
 describe('Fast', function() {
 

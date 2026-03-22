@@ -1,4 +1,4 @@
-var Generator = require('../../lib/generators/string');
+import Generator from '../../lib/generators/string.js';
 
 describe('String generator', function() {
   var generator = null;
@@ -29,7 +29,7 @@ describe('String generator', function() {
   test('throws an error on unknown expression', function() {
     expect(function() {
       generator.exec(['multi', ['unknown', 'static'], ['code', 'code']]);
-    }).toThrowError(
+    }).toThrow(
       'Generator supports only core expressions - found ["unknown","static"]',
     );
   });

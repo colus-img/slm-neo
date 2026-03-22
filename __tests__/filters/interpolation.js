@@ -1,10 +1,11 @@
-var Template = require('../../lib/template');
+import VMNode from '../../lib/vm_node.js';
+import Template from '../../lib/template.js';
 
 describe('Interpolate', function() {
 
   var template;
   beforeEach(function() {
-    template = new Template(require('../../lib/vm_node'));
+    template = new Template(VMNode);
   });
 
   test('interpolation in attribute', function() {
@@ -42,7 +43,7 @@ describe('Interpolate', function() {
   test('Text interpolation: Expected closing }', function() {
     var src = 'p ${abc';
 
-    expect(function(){ template.render(src, {}); }).toThrowError('Text interpolation: Expected closing }');
+    expect(function(){ template.render(src, {}); }).toThrow('Text interpolation: Expected closing }');
 
   });
 

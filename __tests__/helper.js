@@ -1,6 +1,6 @@
-var VM = require('../lib/vm');
+import VM from '../lib/vm.js';
 
-exports.assertHtml = function(template, src, result, options) {
+export const assertHtml = function(template, src, result, options) {
 
   if (Array.isArray(src)) {
     src = src.join('\n');
@@ -52,7 +52,7 @@ exports.assertHtml = function(template, src, result, options) {
   expect(template.render(src, context, options)).toEqual(result);
 };
 
-exports.assertSyntaxError = function(template, src, result, options) {
+export const assertSyntaxError = function(template, src, result, options) {
   src = src.join('\n');
   var context = {
     idHelper: 'notice',
@@ -72,5 +72,5 @@ exports.assertSyntaxError = function(template, src, result, options) {
   };
   expect(function() {
     template.render(src, context, options);
-  }).toThrowError(result);
+  }).toThrow(result);
 };
