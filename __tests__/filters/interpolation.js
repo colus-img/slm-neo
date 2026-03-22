@@ -1,15 +1,15 @@
 import VMNode from '../../lib/vm_node.js';
 import Template from '../../lib/template.js';
 
-describe('Interpolate', function() {
+describe('Interpolate', () => {
 
-  var template;
-  beforeEach(function() {
+  let template;
+  beforeEach(() => {
     template = new Template(VMNode);
   });
 
-  test('interpolation in attribute', function() {
-    var src = 'p id="a${this.idHelper}b" = this.helloWorld';
+  test('interpolation in attribute', () => {
+    const src = 'p id="a${this.idHelper}b" = this.helloWorld';
 
     expect(
       template.render(src, {idHelper: 'someid', helloWorld: 'hello world'})
@@ -18,8 +18,8 @@ describe('Interpolate', function() {
     );
   });
 
-  test('interpolation in attribute', function() {
-    var src = 'p id="a${this.idHelper}b" = this.helloWorld';
+  test('interpolation in attribute', () => {
+    const src = 'p id="a${this.idHelper}b" = this.helloWorld';
 
     expect(
       template.render(src, {idHelper: 'someid', helloWorld: 'hello world'})
@@ -29,8 +29,8 @@ describe('Interpolate', function() {
   });
 
   // Not yet
-  test('nested interpolation in attribute', function() {
-    var src = 'p id="${"abc${1+1}" + "("}" = this.helloWorld';
+  test('nested interpolation in attribute', () => {
+    const src = 'p id="${"abc${1+1}" + "("}" = this.helloWorld';
 
     expect(
       template.render(src, {helloWorld: 'Hello World from @env'})
@@ -40,15 +40,15 @@ describe('Interpolate', function() {
 
   });
 
-  test('Text interpolation: Expected closing }', function() {
-    var src = 'p ${abc';
+  test('Text interpolation: Expected closing }', () => {
+    const src = 'p ${abc';
 
-    expect(function(){ template.render(src, {}); }).toThrow('Text interpolation: Expected closing }');
+    expect(() => { template.render(src, {}); }).toThrow('Text interpolation: Expected closing }');
 
   });
 
-  test('interpolation in text', function() {
-    var src =
+  test('interpolation in text', () => {
+    const src =
       'p\n' +
       '  . ${this.helloWorld} with "quotes"\n' +
       'p\n' +
@@ -61,16 +61,16 @@ describe('Interpolate', function() {
       '<p>Hello World from @env with \"quotes\" </p><p>A message from the compiler: Hello World from @env </p>');
   });
 
-  test('interpolation in tag', function() {
-    var src = 'p ${this.helloWorld}';
+  test('interpolation in tag', () => {
+    const src = 'p ${this.helloWorld}';
     expect(
       template.render(src, {helloWorld: 'Hello'})
     ).toEqual(
       '<p>Hello</p>');
   });
 
-  test('escape interpolation', function() {
-    var src =
+  test('escape interpolation', () => {
+    const src =
       'p \\${this.helloWorld}\n' +
       'p text1 \\${this.helloWorld} text2';
     expect(
@@ -79,25 +79,25 @@ describe('Interpolate', function() {
       '<p>${this.helloWorld}</p><p>text1 ${this.helloWorld} text2</p>');
   });
 
-  test('interpolation with escaping', function() {
-    var src = '. ${this.evilMethod()}';
+  test('interpolation with escaping', () => {
+    const src = '. ${this.evilMethod()}';
     expect(
-      template.render(src, {evilMethod: function() {return '<script>do_something_evil();</script>';}})
+      template.render(src, {evilMethod() {return '<script>do_something_evil();</script>';}})
     ).toEqual(
       '&lt;script&gt;do_something_evil();&lt;/script&gt; ');
   });
 
-  test('interpolation without escaping', function() {
-    var src = '| ${= this.evilMethod()}';
+  test('interpolation without escaping', () => {
+    const src = '| ${= this.evilMethod()}';
     expect(
-      template.render(src, {evilMethod: function() {return '<script>do_something_evil();</script>';}})
+      template.render(src, {evilMethod() {return '<script>do_something_evil();</script>';}})
     ).toEqual('<script>do_something_evil();</script>');
   });
 
-  test('interpolation with escaping and delimiter', function() {
-    var src = '| ${(this.evilMethod())}';
+  test('interpolation with escaping and delimiter', () => {
+    const src = '| ${(this.evilMethod())}';
     expect(
-      template.render(src, {evilMethod: function() {return '<script>do_something_evil();</script>';}})
+      template.render(src, {evilMethod() {return '<script>do_something_evil();</script>';}})
     ).toEqual(
       '&lt;script&gt;do_something_evil();&lt;/script&gt;');
   });

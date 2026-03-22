@@ -1,10 +1,10 @@
 import Parser from '../lib/parser.js';
 
 
-describe('Parser', function() {
+describe('Parser', () => {
 
-  test('._getIndent()', function() {
-    var parser = new Parser();
+  test('._getIndent()', () => {
+    const parser = new Parser();
 
     expect(parser._getIndent(' ')).toEqual(1);
     expect(parser._getIndent(' ')).toEqual(1);
@@ -15,8 +15,8 @@ describe('Parser', function() {
 
   });
 
-  test('.exec()', function() {
-    var parser = new Parser();
+  test('.exec()', () => {
+    const parser = new Parser();
 
     expect(parser.exec(' ')).toEqual([ 'multi', [ 'newline' ] ]);
 
@@ -124,7 +124,7 @@ describe('Parser', function() {
       ]
     );
 
-    var code =
+    const code =
       '- if (x)\n' +
       '  p = x\n' +
       'p nice';

@@ -1,14 +1,14 @@
 import Escape from '../../lib/filters/escape.js';
 
-describe('Escape', function() {
+describe('Escape', () => {
 
-  var filter;
+  let filter;
 
-  beforeEach(function() {
+  beforeEach(() => {
     filter = new Escape();
   });
 
-  test('handle escape expressions', function(){
+  test('handle escape expressions', () => {
     expect(
       filter.exec(['escape', true,
                     ['multi',
@@ -22,25 +22,25 @@ describe('Escape', function() {
     );
   });
 
-  test('keep codes intact', function() {
+  test('keep codes intact', () => {
     expect(filter.exec(['multi', ['code', 'foo']])).toEqual(['multi', ['code', 'foo']]);
   });
 
-  test('keep statics intact', function() {
+  test('keep statics intact', () => {
     expect(filter.exec(['multi', ['static', '<']])).toEqual(['multi', ['static', '<']]);
   });
 
-  test('keep dynamic intact', function() {
+  test('keep dynamic intact', () => {
     expect(filter.exec(['multi', ['dynamic', 'foo']])).toEqual(['multi', ['dynamic', 'foo']]);
   });
 
-  test('use htmlSafe flag', function() {
-    var src = new String('a < b');
+  test('use htmlSafe flag', () => {
+    const src = new String('a < b');
     src.htmlSafe = true;
     expect(
       filter.exec(['escape', true, ['static', src]])
     ).toEqual(
-      ['static', src + '']
+      ['static', `${src}`]
     );
   });
 

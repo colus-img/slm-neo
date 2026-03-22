@@ -1,14 +1,14 @@
 import ControlFlow from '../../lib/filters/control_flow.js';
 
-describe('ControlFlow', function() {
+describe('ControlFlow', () => {
 
-  var filter;
+  let filter;
 
-  beforeEach(function() {
+  beforeEach(() => {
     filter = new ControlFlow();
   });
 
-  test('should process blocks', function(){
+  test('should process blocks', () => {
     expect(
       filter.exec(['block', 'while (true)', ['static', 'Hello']])
     ).toEqual(
@@ -19,7 +19,7 @@ describe('ControlFlow', function() {
     );
   });
 
-  test('should process if', function(){
+  test('should process if', () => {
     expect(
       filter.exec(['if', 'condition', ['static', 'Hello']])
     ).toEqual(
@@ -31,7 +31,7 @@ describe('ControlFlow', function() {
     );
   });
 
-  test('should process if with else', function(){
+  test('should process if with else', () => {
     expect(
       filter.exec(['if', 'condition', ['static', 'True'], ['static', 'False']])
     ).toEqual(

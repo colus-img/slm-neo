@@ -10,10 +10,10 @@ import FS from 'fs';
 import slm from '../lib/slm.js';
 const { compile } = slm;
 
-describe('VMNode', function() {
-  var fixture = {};
+describe('VMNode', () => {
+  let fixture = {};
 
-  beforeEach(function() {
+  beforeEach(() => {
     fixture = {};
     fixture.template = new Template(VMNode);
     fixture.VM = fixture.template.VM;
@@ -21,8 +21,8 @@ describe('VMNode', function() {
     fixture.vm.resetCache();
   });
 
-  test('extend with same path', function() {
-    var options = {
+  test('extend with same path', () => {
+    const options = {
       basePath: '/',
     };
 
@@ -43,14 +43,14 @@ describe('VMNode', function() {
     );
 
     options.filename = '/view.slm';
-    var src = [
+    const src = [
       '- extend("layout")',
       '= content("head")',
       '  meta name="keywords" content=this.who',
       'p Hello, ${this.who}',
     ].join('\n');
 
-    var result = fixture.template.render(
+    const result = fixture.template.render(
       src,
       { who: 'World', what: 'the best' },
       options,
@@ -61,8 +61,8 @@ describe('VMNode', function() {
     );
   });
 
-  test('extend with abs path', function() {
-    var options = {
+  test('extend with abs path', () => {
+    const options = {
       basePath: '/views',
     };
 
@@ -83,14 +83,14 @@ describe('VMNode', function() {
     );
 
     options.filename = '/views/view';
-    var src = [
+    const src = [
       '- extend("/layout")',
       '= content("head");',
       '  meta name="keywords" content=this.who',
       'p Hello, ${this.who}',
     ].join('\n');
 
-    var result = fixture.template.render(
+    const result = fixture.template.render(
       src,
       { who: 'World', what: 'the best' },
       options,
@@ -101,8 +101,8 @@ describe('VMNode', function() {
     );
   });
 
-  test('extend with same nested path', function() {
-    var options = {
+  test('extend with same nested path', () => {
+    const options = {
       basePath: '/',
     };
 
@@ -124,14 +124,14 @@ describe('VMNode', function() {
 
     options.filename = '/views/view.slm';
 
-    var src = [
+    const src = [
       '- extend("layout")',
       '= content("head");',
       '  meta name="keywords" content=this.who',
       'p Hello, ${this.who}',
     ].join('\n');
 
-    var result = fixture.template.render(
+    const result = fixture.template.render(
       src,
       { who: 'World', what: 'the best' },
       options,
@@ -142,8 +142,8 @@ describe('VMNode', function() {
     );
   });
 
-  test('extend with same nested path 2', function() {
-    var options = {
+  test('extend with same nested path 2', () => {
+    const options = {
       basePath: '/views',
     };
     options.filename = '/views/layouts/app.slm';
@@ -174,14 +174,14 @@ describe('VMNode', function() {
 
     options.filename = '/views/products/new.slm';
 
-    var src = [
+    const src = [
       '- extend("../layouts/app")',
       '= content("head");',
       '  meta name="keywords" content=this.who',
       '= partial("form", this)',
     ].join('\n');
 
-    var result = fixture.template.render(
+    const result = fixture.template.render(
       src,
       { who: 'World', what: 'the best' },
       options,
@@ -192,23 +192,23 @@ describe('VMNode', function() {
     );
   });
 
-  test('test require', function() {
-    var options = {
+  test('test require', () => {
+    const options = {
       basePath: '/views',
       require: customRequire,
     };
 
     options.filename = '/views/forms/form.slm';
-    var src = ['- var p = require("path");', 'p = p.extname("super.slm")'].join(
+    const src = ['- var p = require("path");', 'p = p.extname("super.slm")'].join(
       '\n',
     );
 
-    var result = fixture.template.render(src, {}, options, fixture.vm);
+    const result = fixture.template.render(src, {}, options, fixture.vm);
     expect(result).toEqual('<p>.slm</p>');
   });
 
-  test('test content default', function() {
-    var options = {
+  test('test content default', () => {
+    const options = {
       basePath: '/views',
     };
 
@@ -231,28 +231,28 @@ describe('VMNode', function() {
     );
 
     options.filename = '/views/forms/form.slm';
-    var src = ['- extend("../layouts/app")', 'p Body from view'].join('\n');
+    const src = ['- extend("../layouts/app")', 'p Body from view'].join('\n');
 
-    var result = fixture.template.render(src, {}, options, fixture.vm);
+    const result = fixture.template.render(src, {}, options, fixture.vm);
     expect(result).toEqual(
       '<html><head><title>Default title</title></head><body><p>Body from view</p></body></html>',
     );
 
-    var src2 = [
+    const src2 = [
       '- extend("../layouts/app")',
       '= content("title")',
       '  title New title',
       'p Body from view',
     ].join('\n');
 
-    var result2 = fixture.template.render(src2, {}, options, fixture.vm);
+    const result2 = fixture.template.render(src2, {}, options, fixture.vm);
     expect(result2).toEqual(
       '<html><head><title>New title</title></head><body><p>Body from view</p></body></html>',
     );
   });
 
-  test('test content append', function() {
-    var options = {
+  test('test content append', () => {
+    const options = {
       basePath: '/views',
     };
 
@@ -274,70 +274,70 @@ describe('VMNode', function() {
     );
 
     options.filename = '/views/forms/form.slm';
-    var src = [
+    const src = [
       '- extend("../layouts/app")',
       '= content("title", "append")',
       '  title 1',
       'p Body from view',
     ].join('\n');
 
-    var result = fixture.template.render(src, {}, options, fixture.vm);
+    const result = fixture.template.render(src, {}, options, fixture.vm);
     expect(result).toEqual(
       '<html><head><title>1</title></head><body><p>Body from view</p></body></html>',
     );
 
-    var src2 = [
+    const src2 = [
       '- extend("../layouts/app")',
       '= content("title", "prepend")',
       '  title 2',
       'p Body from view',
     ].join('\n');
 
-    var result2 = fixture.template.render(src2, {}, options, fixture.vm);
+    const result2 = fixture.template.render(src2, {}, options, fixture.vm);
     expect(result2).toEqual(
       '<html><head><title>2</title></head><body><p>Body from view</p></body></html>',
     );
   });
 
-  test('test view loading', function() {
-    var options = {
-      basePath: __dirname + '/views',
-      filename: __dirname + '/views/index.slm',
+  test('test view loading', () => {
+    const options = {
+      basePath: `${__dirname}/views`,
+      filename: `${__dirname}/views/index.slm`,
     };
 
-    var src = FS.readFileSync(options.filename, 'utf8');
+    const src = FS.readFileSync(options.filename, 'utf8');
 
-    var fn1 = compile(src, options);
-    var res1 = fn1({});
+    const fn1 = compile(src, options);
+    const res1 = fn1({});
     options.useCache = true;
-    var fn2 = compile(src, options);
-    var res2 = fn2({});
+    const fn2 = compile(src, options);
+    const res2 = fn2({});
     options.useCache = false;
-    var fn3 = compile(src, options);
-    var res3 = fn3({});
-    var expected =
+    const fn3 = compile(src, options);
+    const res3 = fn3({});
+    const expected =
       '<!DOCTYPE html><html><head><title>Nice</title><style type="text/css">body {background :red};</style></head><body><h1>Partial</h1><p>This is new footer</p></body><script>console.log(\'script\');</script><script type="text/javascript">console.log(\'javascript\');</script></html>';
     expect(res1).toEqual(expected);
     expect(res2).toEqual(expected);
     expect(res3).toEqual(expected);
   });
 
-  test('test resolvePath', function() {
-    var options = {
-      filename: __dirname + '/views/index.slm',
+  test('test resolvePath', () => {
+    const options = {
+      filename: `${__dirname}/views/index.slm`,
     };
 
-    var src = FS.readFileSync(options.filename, 'utf8');
+    const src = FS.readFileSync(options.filename, 'utf8');
 
-    var fn1 = compile(src, options);
-    expect(function() {
+    const fn1 = compile(src, options);
+    expect(() => {
       fn1({});
     }).toThrow(
       'the "basePath" option is required to use with "absolute" paths',
     );
 
-    var fn2 = compile(src, {});
-    expect(function() {
+    const fn2 = compile(src, {});
+    expect(() => {
       fn2({});
     }).toThrow(
       'the "filename" option is required to use with "relative" paths',

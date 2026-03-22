@@ -1,14 +1,14 @@
 import MultiFlattener from '../../lib/filters/multi_flattener.js';
 
-describe('MultiFlattener', function() {
+describe('MultiFlattener', () => {
 
-  var filter;
+  let filter;
 
-  beforeEach(function() {
+  beforeEach(() => {
     filter = new MultiFlattener();
   });
 
-  test('flatten nested multi expressions', function() {
+  test('flatten nested multi expressions', () => {
     expect(
       filter.exec(
         [

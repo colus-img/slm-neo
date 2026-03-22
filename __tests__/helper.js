@@ -1,76 +1,76 @@
 import VM from '../lib/vm.js';
 
-export const assertHtml = function(template, src, result, options) {
+export const assertHtml = (template, src, result, options) => {
 
   if (Array.isArray(src)) {
     src = src.join('\n');
   }
 
-  var env = {};
-  var context = {
+  const env = {};
+  const context = {
     items: [1,2,3],
     idHelper: 'notice',
     outputNumber: 1337,
     helloWorld: 'Hello World from @env',
-    showFirst: function(force) {
+    showFirst(force) {
       if (force !== undefined) {
         return force;
       }
       return false;
     },
     x: 0,
-    message: function(m1, m2){
+    message(m1, m2) {
       if (!m2) {
         return m1;
       }
       return [m1, m2].join(' ');
     },
-    helloBlock: function(callback) {
-      return this.helloWorld + ' ' + callback() + ' ' + this.helloWorld;
+    helloBlock(callback) {
+      return `${this.helloWorld} ${callback()} ${this.helloWorld}`;
     },
-    block: function(callback) {
+    block(callback) {
       return VM.safe(callback());
     },
-    content: function() {
+    content() {
       switch (arguments.length) {
         case 0:
           return env[''];
         case 1:
           return env[arguments[0]];
         case 2:
-          var arg = arguments[0];
+          const arg = arguments[0];
           if (!arg) {
             return arguments[1]();
           }
           return env[arg] || arguments[1]();
       }
     },
-    evilMethod: function() {
+    evilMethod() {
       return '<script>do_something_evil();</script>';
     }
   };
   expect(template.render(src, context, options)).toEqual(result);
 };
 
-export const assertSyntaxError = function(template, src, result, options) {
+export const assertSyntaxError = (template, src, result, options) => {
   src = src.join('\n');
-  var context = {
+  const context = {
     idHelper: 'notice',
     outputNumber: 1337,
     helloWorld: 'Hello World from @env',
-    showFirst: function(force) {
+    showFirst(force) {
       if (force !== undefined) {
         return force;
       }
       return false;
     },
     x: 0,
-    message: function(v){ return v; },
-    helloBlock: function(callback) {
-      return this.helloWorld + ' ' + callback() + ' ' + this.helloWorld;
+    message(v) { return v; },
+    helloBlock(callback) {
+      return `${this.helloWorld} ${callback()} ${this.helloWorld}`;
     }
   };
-  expect(function() {
+  expect(() => {
     template.render(src, context, options);
   }).toThrow(result);
 };

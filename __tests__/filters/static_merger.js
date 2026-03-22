@@ -1,14 +1,14 @@
 import StaticMerger from '../../lib/filters/static_merger.js';
 
-describe('StaticMerger', function() {
+describe('StaticMerger', () => {
 
-  var filter;
+  let filter;
 
-  beforeEach(function() {
+  beforeEach(() => {
     filter = new StaticMerger();
   });
 
-  test('merge serveral statics', function() {
+  test('merge serveral statics', () => {
     expect(
       filter.exec(['multi',
         ['static', 'Hello '],
@@ -19,7 +19,7 @@ describe('StaticMerger', function() {
     );
   });
 
-  test('merge serveral statics around code', function() {
+  test('merge serveral statics around code', () => {
     expect(
       filter.exec(['multi',
         ['static', 'Hello '],
@@ -35,7 +35,7 @@ describe('StaticMerger', function() {
       ]);
   });
 
-  test('merge serveral statics across newlines', function() {
+  test('merge serveral statics across newlines', () => {
     expect(
       filter.exec(['multi',
         ['static', 'Hello '],

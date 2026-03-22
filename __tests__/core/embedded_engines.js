@@ -2,17 +2,15 @@ import VMNode from '../../lib/vm_node.js';
 import Template from '../../lib/template.js';
 import { assertHtml } from '../helper.js';
 
-describe('Embedded engines', function() {
-  var template;
+describe('Embedded engines', () => {
+  let template;
 
-  beforeEach(function() {
+  beforeEach(() => {
     template = new Template(VMNode);
-    template.registerEmbeddedFunction('customEngine', function(body) {
-      return '<pre>' + body + '</pre>';
-    });
+    template.registerEmbeddedFunction('customEngine', body => `<pre>${body}</pre>`);
   });
 
-  test('render with javascript', function() {
+  test('render with javascript', () => {
     assertHtml(template, [
       'javascript:   ',
       '  $(function() {});',
@@ -25,7 +23,7 @@ describe('Embedded engines', function() {
       {});
   });
 
-  test('render with script', function() {
+  test('render with script', () => {
     assertHtml(template, [
       'script:   ',
       '  $(function() {});',
@@ -38,7 +36,7 @@ describe('Embedded engines', function() {
       {});
   });
 
-  test('render with javascript including variable', function() {
+  test('render with javascript including variable', () => {
     assertHtml(template, [
       '- var func = "alert(\'hello\');"',
       'javascript:   ',
@@ -48,7 +46,7 @@ describe('Embedded engines', function() {
       {});
   });
 
-  test('render with css', function() {
+  test('render with css', () => {
     assertHtml(template, [
       'css:',
       '  body { color: red; }'
@@ -57,7 +55,7 @@ describe('Embedded engines', function() {
       {});
   });
 
-  test('render with custom engine', function() {
+  test('render with custom engine', () => {
     assertHtml(template, [
       'customEngine:',
       '  text ${this.helloWorld}',
@@ -67,8 +65,8 @@ describe('Embedded engines', function() {
       {});
   });
 
-  test('throws an error on unregistered engine', function() {
-    expect(function() {
+  test('throws an error on unregistered engine', () => {
+    expect(() => {
       assertHtml(template, [
         'unregistered:',
         '  text'
