@@ -1,12 +1,12 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { createRequire } from 'node:module';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const customRequire = createRequire(import.meta.url);
 import VMNode from '../lib/vm_node.js';
 import Template from '../lib/template.js';
-import FS from 'fs';
+import FS from 'node:fs';
 import slm from '../lib/slm.js';
 const { compile } = slm;
 
@@ -199,7 +199,7 @@ describe('VMNode', () => {
     };
 
     options.filename = '/views/forms/form.slm';
-    const src = ['- var p = require("path");', 'p = p.extname("super.slm")'].join(
+    const src = ['- var p = require('node:path');', 'p = p.extname("super.slm")'].join(
       '\n',
     );
 

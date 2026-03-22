@@ -71,7 +71,7 @@ describe('Code structure', () => {
 
   test('render with case', () => {
     assertHtml(template, [
-      '- var url = require("url");',
+      '- var url = require('node:url');',
       'p',
       '  - switch(42)',
       '    - case 41:',
