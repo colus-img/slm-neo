@@ -1,0 +1,36 @@
+name: Deploy Playground
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Build
+        run: deno task build
+
+      - name: Prepare Deployment
+        run: |
+          mkdir public
+          cp playground/index.html public/
+          cp -r dist public/
+          # Fix path in index.html for root deployment
+          # In playground/index.html, path is "../dist/slm-browser.js"
+          # In gh-pages root, it should be "dist/slm-browser.js"
+          sed -i 's/\.\.\/dist/dist/g' public/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

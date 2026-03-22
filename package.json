@@ -1,7 +1,7 @@
 {
-  "name": "slm",
-  "version": "2.0.0",
-  "description": "Slim/Jade like templating engine",
+  "name": "slm-neo",
+  "version": "0.1.0",
+  "description": "The new generation of slm. A modern Slim-like templating engine for Node.js and Deno, featuring native Async/Await support.",
   "type": "module",
   "main": "lib/slm.js",
   "browser": "lib/slm_browser.js",
@@ -11,15 +11,26 @@
   },
   "keywords": [
     "html",
-    "jade",
-    "pug",
+    "slm",
     "slim",
-    "template"
+    "template",
+    "async",
+    "await"
   ],
-  "author": "Yury Korolev",
-  "license": "ISC",
+  "author": "colus-img (github.com/colus-img)",
+  "contributors": [
+    "Yury Korolev (Original slm author)"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/colus-img/slm-neo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/colus-img/slm-neo/issues"
+  },
+  "homepage": "https://github.com/colus-img/slm-neo",
   "devDependencies": {
-    "codeclimate-test-reporter": "^0.5.0",
     "esbuild": "^0.27.4",
     "jest": "^30.3.0"
   },
@@ -36,13 +47,5 @@
         "statements": 97
       }
     }
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/slm-lang/slm.git"
-  },
-  "bugs": {
-    "url": "https://github.com/slm-lang/slm/issues"
-  },
-  "homepage": "https://github.com/slm-lang/slm"
+  }
 }

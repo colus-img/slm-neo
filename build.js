@@ -1,4 +1,4 @@
-import * as esbuild from 'npm:esbuild@0.20.1';
+import * as esbuild from 'esbuild';
 import { gzip } from 'node:zlib';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
