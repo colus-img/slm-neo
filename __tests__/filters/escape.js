@@ -1,47 +1,53 @@
-import Escape from '../../lib/filters/escape.js';
+import Escape from "../../lib/filters/escape.js";
 
-describe('Escape', () => {
+describe("Escape", () => {
+	let filter;
 
-  let filter;
+	beforeEach(() => {
+		filter = new Escape();
+	});
 
-  beforeEach(() => {
-    filter = new Escape();
-  });
+	test("handle escape expressions", () => {
+		expect(
+			filter.exec([
+				"escape",
+				true,
+				["multi", ["static", "a < b"], ["dynamic", "this.jsMethod()"]],
+			]),
+		).toEqual([
+			"multi",
+			["static", "a &lt; b"],
+			["dynamic", "vm.escape(this.jsMethod())"],
+		]);
+	});
 
-  test('handle escape expressions', () => {
-    expect(
-      filter.exec(['escape', true,
-                    ['multi',
-                     ['static', 'a < b'],
-                     ['dynamic', 'this.jsMethod()']]
-      ])).toEqual(
-      ['multi',
-        ['static', 'a &lt; b'],
-        ['dynamic', 'vm.escape(this.jsMethod())']
-      ]
-    );
-  });
+	test("keep codes intact", () => {
+		expect(filter.exec(["multi", ["code", "foo"]])).toEqual([
+			"multi",
+			["code", "foo"],
+		]);
+	});
 
-  test('keep codes intact', () => {
-    expect(filter.exec(['multi', ['code', 'foo']])).toEqual(['multi', ['code', 'foo']]);
-  });
+	test("keep statics intact", () => {
+		expect(filter.exec(["multi", ["static", "<"]])).toEqual([
+			"multi",
+			["static", "<"],
+		]);
+	});
 
-  test('keep statics intact', () => {
-    expect(filter.exec(['multi', ['static', '<']])).toEqual(['multi', ['static', '<']]);
-  });
+	test("keep dynamic intact", () => {
+		expect(filter.exec(["multi", ["dynamic", "foo"]])).toEqual([
+			"multi",
+			["dynamic", "foo"],
+		]);
+	});
 
-  test('keep dynamic intact', () => {
-    expect(filter.exec(['multi', ['dynamic', 'foo']])).toEqual(['multi', ['dynamic', 'foo']]);
-  });
-
-  test('use htmlSafe flag', () => {
-    const src = new String('a < b');
-    src.htmlSafe = true;
-    expect(
-      filter.exec(['escape', true, ['static', src]])
-    ).toEqual(
-      ['static', `${src}`]
-    );
-  });
-
+	test("use htmlSafe flag", () => {
+		const src = new String("a < b");
+		src.htmlSafe = true;
+		expect(filter.exec(["escape", true, ["static", src]])).toEqual([
+			"static",
+			`${src}`,
+		]);
+	});
 });

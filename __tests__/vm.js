@@ -1,40 +1,64 @@
-import VM from '../lib/vm.js';
+import VM from "../lib/vm.js";
 
-describe('VM', () => {
+describe("VM", () => {
+	const vm = new VM();
 
-  const vm = new VM();
+	test(".rejectEmpty()", () => {
+		expect(vm.rejectEmpty(["a", null, "b", "", "c"])).toEqual(["a", "b", "c"]);
+	});
 
-  test('.rejectEmpty()', () => {
-    expect(vm.rejectEmpty(['a', null, 'b', '', 'c'])).toEqual(['a', 'b', 'c']);
-  });
+	test(".flatten()", () => {
+		expect(vm.flatten([1, [2, 3], [4, [5, [6, 7]]]])).toEqual([
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+		]);
 
-  test('.flatten()', () => {
-    expect(vm.flatten([1, [2, 3], [4, [5, [6, 7]]]]))
-    .toEqual(['1', '2', '3', '4', '5', '6', '7']);
+		expect(vm.flatten([1, 2, [3], [4, [5, 6], 7], [8, 9]])).toEqual([
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9",
+		]);
 
-    expect(vm.flatten([1, 2, [3], [4, [5, 6], 7], [8, 9]]))
-    .toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9']);
+		expect(vm.flatten([1, 2, [], [3, [4, 5, []], 6]])).toEqual([
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+		]);
+	});
 
-    expect(vm.flatten([1, 2, [], [3, [4, 5, []], 6]]))
-    .toEqual(['1', '2', '3', '4', '5', '6']);
-  });
+	test(".escape()", () => {
+		expect(vm.escape()).toEqual("");
+		expect(vm.escape(null)).toEqual("");
+		expect(vm.escape(" ")).toEqual(" ");
+		expect(vm.escape("<")).toEqual("&lt;");
+		expect(vm.escape(">")).toEqual("&gt;");
+		expect(vm.escape('"')).toEqual("&quot;");
+		expect(vm.escape("&")).toEqual("&amp;");
+		expect(vm.escape('<javascript>alert("alert!")</javascript>')).toEqual(
+			"&lt;javascript&gt;alert(&quot;alert!&quot;)&lt;/javascript&gt;",
+		);
+	});
 
-  test('.escape()', () => {
-    expect(vm.escape()).toEqual('');
-    expect(vm.escape(null)).toEqual('');
-    expect(vm.escape(' ')).toEqual(' ');
-    expect(vm.escape('<')).toEqual('&lt;');
-    expect(vm.escape('>')).toEqual('&gt;');
-    expect(vm.escape('"')).toEqual('&quot;');
-    expect(vm.escape('&')).toEqual('&amp;');
-    expect(vm.escape('<javascript>alert("alert!")</javascript>'))
-      .toEqual('&lt;javascript&gt;alert(&quot;alert!&quot;)&lt;/javascript&gt;');
-  });
-
-  test('.safe()', () => {
-    expect(vm.escape(vm.safe('<javascript>alert("alert!")</javascript>'))).toEqual('<javascript>alert("alert!")</javascript>');
-    expect(vm.escape(vm.safe(''))).toEqual('');
-    expect(vm.escape(vm.safe())).toEqual('');
-    expect(vm.escape(vm.safe(null))).toEqual('');
-  });
+	test(".safe()", () => {
+		expect(
+			vm.escape(vm.safe('<javascript>alert("alert!")</javascript>')),
+		).toEqual('<javascript>alert("alert!")</javascript>');
+		expect(vm.escape(vm.safe(""))).toEqual("");
+		expect(vm.escape(vm.safe())).toEqual("");
+		expect(vm.escape(vm.safe(null))).toEqual("");
+	});
 });
