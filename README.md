@@ -63,6 +63,8 @@ The `render`, `renderAsync`, `compile`, and `compileAsync` methods take an optio
 | **`attrDelims`** | Customize attribute delimiters. Default: `{ '(': ')', '[': ']' }` |
 | **`mergeAttrs`** | Define how attributes are merged. Default: `{ class: ' ' }` |
 | **`format`** | Output format: `xhtml` (default) or `html`. In `html` mode, void elements are not self-closed with ` /`. |
+| **`autoDestructuring`** | Automatically destructure top-level data variables, enabling you to omit the `this.` prefix in templates. (Default: `true`) |
+| **`destructuringExclude`** | Array of string identifier names you wish to explicitly exclude from auto-destructuring. |
 | **`require`** | Provide a custom `require` function (via `createRequire`) to load Node.js/local modules within templates. Useful in ESM/Deno environments. |
 
 Example: with options
@@ -111,10 +113,10 @@ If you are already familiar with [Ruby Slim](http://slim-lang.com/), here are th
 - **JavaScript-based Logic**: Use JavaScript for control flow and expressions.
   - `- if (this.items.length)` instead of `- if items.any?`
   - `- for (let item of this.items)` instead of `- for item in items`
-- **Model Context (`this`)**: All data passed to the template is bound to the `this` context.
-- **ES6-style Interpolation**: Use `${this.var}` instead of `#{var}`.
-  - `${this.var}`: HTML-escaped output.
-  - `${=this.var}`: Unescaped (raw) output.
+- **Model Context (`this`)**: All data passed to the template is bound to the `this` context. (You can omit `this.` for top-level data and filters thanks to auto-destructuring!)
+- **ES6-style Interpolation**: Use `${var}` or `${this.var}` instead of `#{var}`.
+  - `${var}`: HTML-escaped output.
+  - `${=var}`: Unescaped (raw) output.
 - **Native Async/Await**: You can call and `await` asynchronous functions directly within templates.
   - `p = await this.db.fetchData()`
   - `- if (await this.checkPermission()) ...`
@@ -130,10 +132,19 @@ Slm-neo inherits the core syntax from [Slim](http://slim-lang.com/), including i
 All logic and expressions are written in JavaScript. Reference model data via the `this` context.
 
 #### Output and Interpolation
-- `${this.name}`: HTML-escaped output.
-- `${=this.rawHtml}`: Unescaped (raw) output.
-- `p = this.message`: Escaped output (same as `${...}`).
-- `p == this.raw`: Unescaped output (same as `${=...}`).
+- `p = title`: Escaped output. Data explicitly passed to the template can be written without the `this.` prefix thanks to the newly introduced automatic destructuring feature. Top-level components like `this.title` or `this.filters` are automatically assigned.
+- `${title}`: HTML-escaped output using interpolation.
+- `${=rawHtml}`: Unescaped (raw) output.
+- `p == raw`: Unescaped output (same as `${=...}`).
+
+> **Note on Destructuring (Snapshot problem)**: Automatic destructuring evaluates the variable at the top-level of the rendering function. Dynamic getters or values that change during the rendering cycle might not reflect their latest state. In such advanced cases, explicitly use the `this.` prefix (e.g. `this.dynamicValue`). You can also completely disable this feature by passing `{ autoDestructuring: false }` to the options.
+
+#### Filter Pipeline Syntax
+Slm-neo supports a clean pipeline syntax via `|` to chain function calls and filters smoothly.
+**Note**: To prevent ambiguity with the JavaScript bitwise OR operator, pipeline syntax is strictly restricted to be used inside interpolation blocks `${ ... }`.
+- `p ${title | upper}`: Equivalent to `<p>` + `upper(title)` + `</p>`.
+- `p class="${ size | prefix('btn-') }"`: Equivalent to `prefix(size, 'btn-')`.
+- `${ message | replace("x", "y") | upper }`: Equivalent to `upper(replace(message, "x", "y"))`.
 
 #### Control Flow
 Blocks are defined by indentation. JavaScript syntax is supported natively.
@@ -237,6 +248,20 @@ Mixins are used to define reusable blocks **within the same template**.
 - for (let friend of this.friends)
   = mixin('userCard', friend)
 ```
+
+##### Custom Block Helpers (Paired Shortcodes)
+
+When you use an output block (`= helperName "arg1"`) with an indented body, Slm-neo will internally append a **callback function** to the end of your arguments. This callback function, when executed, evaluates and returns the rendered HTML string of the indented block.
+
+```slim
+= this.filters.wrapWithDiv("my-class")
+  p Nested block content
+```
+
+The underlying JavaScript engine will execute:
+`this.filters.wrapWithDiv("my-class", function() { return "<p>Nested block content</p>"; })`
+
+If you are using this with 11ty Paired Shortcodes (which expect the block's `content` string to be the *first* argument), you will need to wrap the Slm execution in your 11ty plugin configuration to parse the callback properly.
 
 ## Browser Usage
 
