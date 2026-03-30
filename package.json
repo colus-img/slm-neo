@@ -1,6 +1,6 @@
 {
   "name": "slm-neo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The new generation of slm. A modern Slim-like templating engine for Node.js and Deno, featuring native Async/Await support.",
   "type": "module",
   "main": "lib/slm.js",

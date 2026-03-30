@@ -145,6 +145,8 @@ Slm-neo supports a clean pipeline syntax via `|` to chain function calls and fil
 - `p ${title | upper}`: Equivalent to `<p>` + `upper(title)` + `</p>`.
 - `p class="${ size | prefix('btn-') }"`: Equivalent to `prefix(size, 'btn-')`.
 - `${ message | replace("x", "y") | upper }`: Equivalent to `upper(replace(message, "x", "y"))`.
+- **Automatic Async Support**: Pipeline syntax automatically handles asynchronous filters. You don't need to write `await` inside the pipeline; it is injected automatically for each step when using `renderAsync`.
+    - `${ postId | getPostTitle | upper }`: Works even if `getPostTitle` is an async function.
 
 #### Control Flow
 Blocks are defined by indentation. JavaScript syntax is supported natively.
