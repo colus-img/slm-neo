@@ -27,6 +27,12 @@ jobs:
     - name: Check formatting (Prettier)
       run: npx prettier --use-tabs --check "lib/**/*.js" "__tests__/**/*.js"
 
+    - name: Build dist
+      run: node build.js
+
+    - name: Check for uncommitted changes in dist
+      run: git diff --exit-code dist/
+
     - name: Run Tests
       run: npm run test
 

@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml } from "../support/assertions.js";
 
 describe("Html escaping", () => {
 	let template;
@@ -8,8 +8,8 @@ describe("Html escaping", () => {
 		template = new Template(VMNode);
 	});
 
-	test("html will not be escaped", () => {
-		assertHtml(
+	test("html will not be escaped", async () => {
+		await assertHtml(
 			template,
 			['p <Hello> World, meet "Slm".'],
 			'<p><Hello> World, meet "Slm".</p>',
@@ -17,8 +17,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html with newline will not be escaped", () => {
-		assertHtml(
+	test("html with newline will not be escaped", async () => {
+		await assertHtml(
 			template,
 			["p", "  |", "    <Hello> World,", '     meet "Slim".'],
 			'<p><Hello> World,\n meet "Slim".</p>',
@@ -26,8 +26,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html with escaped interpolation", () => {
-		assertHtml(
+	test("html with escaped interpolation", async () => {
+		await assertHtml(
 			template,
 			[
 				"- var x = '\"'",
@@ -39,8 +39,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html with raw interpolation", () => {
-		assertHtml(
+	test("html with raw interpolation", async () => {
+		await assertHtml(
 			template,
 			['- var x = "text<br/>"', "p ${=x}", "p $y=1", "p y$=x", "p y$y=x"],
 			'<p>text<br/></p><p $y="1"></p><p y$="text&lt;br/&gt;"></p><p y$y="text&lt;br/&gt;"></p>',
@@ -48,8 +48,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html nested escaping", () => {
-		assertHtml(
+	test("html nested escaping", async () => {
+		await assertHtml(
 			template,
 			["= this.helloBlock(function())", "  | escaped &"],
 			"Hello World from @env escaped &amp; Hello World from @env",
@@ -57,8 +57,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html quoted attr escape", () => {
-		assertHtml(
+	test("html quoted attr escape", async () => {
+		await assertHtml(
 			template,
 			['p id="&" class=="&amp;"'],
 			'<p class="&amp;" id="&amp;"></p>',
@@ -66,8 +66,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html quoted attr escape with interpolation", () => {
-		assertHtml(
+	test("html quoted attr escape with interpolation", async () => {
+		await assertHtml(
 			template,
 			[
 				'p id="&${\'"\'}" class=="&amp;${\'"\'}"',
@@ -78,8 +78,8 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html js attr escape", () => {
-		assertHtml(
+	test("html js attr escape", async () => {
+		await assertHtml(
 			template,
 			["p id=('&'.toString()) class==('&amp;'.toString())"],
 			'<p class="&amp;" id="&amp;"></p>',
@@ -87,15 +87,15 @@ describe("Html escaping", () => {
 		);
 	});
 
-	test("html json xss", () => {
-		assertHtml(
+	test("html json xss", async () => {
+		await assertHtml(
 			template,
 			["script:", "  var x = ${= j()};"],
 			"<script>var x = undefined;</script>",
 			{},
 		);
 
-		assertHtml(
+		await assertHtml(
 			template,
 			["script:", "  var x = ${= j(this.address)};"],
 			"<script>var x = undefined;</script>",

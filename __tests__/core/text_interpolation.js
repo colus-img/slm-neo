@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml } from "../support/assertions.js";
 
 describe("Text interpolation", () => {
 	let template;
@@ -8,8 +8,8 @@ describe("Text interpolation", () => {
 		template = new Template(VMNode);
 	});
 
-	test("interpolation in attribute", () => {
-		assertHtml(
+	test("interpolation in attribute", async () => {
+		await assertHtml(
 			template,
 			['p id="a${this.idHelper}b" = this.helloWorld'],
 			'<p id="anoticeb">Hello World from @env</p>',
@@ -17,8 +17,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("nested interpolation in attribute", () => {
-		assertHtml(
+	test("nested interpolation in attribute", async () => {
+		await assertHtml(
 			template,
 			['p id="${"abc${1+1}" + "("}" = this.helloWorld'],
 			'<p id="abc${1+1}(">Hello World from @env</p>',
@@ -26,8 +26,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("expression in interpolation", () => {
-		assertHtml(
+	test("expression in interpolation", async () => {
+		await assertHtml(
 			template,
 			['p ${this.helloWorld2 || "test"} other text'],
 			"<p>test other text</p>",
@@ -35,8 +35,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("interpolation in text", () => {
-		assertHtml(
+	test("interpolation in text", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -50,8 +50,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("interpolation in tag", () => {
-		assertHtml(
+	test("interpolation in tag", async () => {
+		await assertHtml(
 			template,
 			["p ${this.helloWorld}"],
 			"<p>Hello World from @env</p>",
@@ -59,8 +59,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("escape interpolation", () => {
-		assertHtml(
+	test("escape interpolation", async () => {
+		await assertHtml(
 			template,
 			["p \\${this.helloWorld}", "p text1 \\${this.helloWorld} text2"],
 			"<p>${this.helloWorld}</p><p>text1 ${this.helloWorld} text2</p>",
@@ -68,8 +68,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("interpolation with escaping", () => {
-		assertHtml(
+	test("interpolation with escaping", async () => {
+		await assertHtml(
 			template,
 			["| ${this.evilMethod()}"],
 			"&lt;script&gt;do_something_evil();&lt;/script&gt;",
@@ -77,8 +77,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("interpolation with escaping", () => {
-		assertHtml(
+	test("interpolation with escaping", async () => {
+		await assertHtml(
 			template,
 			["| ${=this.evilMethod()}"],
 			"<script>do_something_evil();</script>",
@@ -86,8 +86,8 @@ describe("Text interpolation", () => {
 		);
 	});
 
-	test("interpolation with escaping and delimiter", () => {
-		assertHtml(
+	test("interpolation with escaping and delimiter", async () => {
+		await assertHtml(
 			template,
 			["| ${(this.evilMethod())}"],
 			"&lt;script&gt;do_something_evil();&lt;/script&gt;",

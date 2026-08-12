@@ -1,4 +1,4 @@
-import slm from "../lib/slm.js";
+import slm from "../../lib/slm.js";
 
 describe("Filter Pipeline Syntax (|)", () => {
 	it("should transform single filter", async () => {
@@ -53,11 +53,11 @@ describe("Filter Pipeline Syntax (|)", () => {
 		expect(result).toBe("<p>a | b</p>");
 	});
 
-	it("should support this.filters.filter syntax via pipeline", async () => {
-		const src = "p ${this.title | this.filters.upper}";
+	it("should support this.helpers.filter syntax via pipeline", async () => {
+		const src = "p ${this.title | this.helpers.upper}";
 		const result = await slm.renderAsync(
 			src,
-			{ title: "hello", filters: { upper: (v) => v.toUpperCase() } },
+			{ title: "hello", helpers: { upper: (v) => v.toUpperCase() } },
 			{ autoDestructuring: false },
 		);
 		expect(result).toBe("<p>HELLO</p>");
@@ -72,5 +72,36 @@ describe("Filter Pipeline Syntax (|)", () => {
 			upperAsync,
 		});
 		expect(result).toBe("<p>HELLO</p>");
+	});
+});
+
+import parsePipeline from "../../lib/utils/pipeline_parser.js";
+describe("pipeline_parser direct coverage", () => {
+	it("uses initialValue and parses space parameters", () => {
+		// initialValue is prepended as the first argument
+		const parsed = parsePipeline("helperName arg1, arg2", "myInitialV", {
+			useAsync: false,
+		});
+		expect(parsed).toBe("helperName(myInitialV, arg1, arg2)");
+
+		// Space-separated helper name without extra args
+		const parsed2 = parsePipeline("helperName", "myInitialV", {
+			useAsync: false,
+		});
+		expect(parsed2).toBe("helperName(myInitialV)");
+
+		// Empty parens are stripped; initialValue is inserted
+		const parsed3 = parsePipeline("helperName()", "myInitialV", {
+			useAsync: false,
+		});
+		expect(parsed3).toBe("helperName(myInitialV)");
+		// Empty segments between double pipes are skipped
+		expect(
+			parsePipeline("helperName | | another", "myInitialV", {
+				useAsync: false,
+			}),
+		).toBe("another(helperName(myInitialV))");
+		// When options is omitted, defaults to async mode (await)
+		expect(parsePipeline("a | b")).toBe("(await b(a))");
 	});
 });

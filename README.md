@@ -4,16 +4,19 @@ Slm-neo is a modern template language for JavaScript (Node.js/Deno). It is a por
 
 [**🚀 Try it in the Online Playground!**](https://colus-img.github.io/slm-neo/)
 
-### Features
+[English](README.md) | [日本語](README.ja.md)
+
+## Features
 
 - **Async/Await Support**: Native support for `await` within templates.
 - **Modern JavaScript**: ESM-first, ES6+ standards.
 - **Cross-platform**: Works seamlessly on both Node.js and Deno.
-- **Elegant syntax**: Short syntax without closing tags using indentation for nesting.
+- **Elegant syntax**: Indentation-based nesting, derived from Ruby Slim, for concise syntax without closing tags.
+- **Helper Pipeline Syntax**: Effortless function application via Slm-neo's unique pipeline notation.
 - **Safety**: Automatic HTML escaping by default.
 - **Performance**: High performance with minimal dependencies.
 
-### How to start?
+## Usage
 
 Install Slm-neo directly from GitHub:
 
@@ -21,39 +24,60 @@ Install Slm-neo directly from GitHub:
 npm install colus-img/slm-neo
 ```
 
-Or use it in Deno:
+For Deno:
 
 ```javascript
 import slm from "https://raw.githubusercontent.com/colus-img/slm-neo/main/lib/slm.js";
 ```
 
-### Usage with Async/Await
+### Rendering Slm Code
 
-Slm-neo supports native `async/await` within templates. Use `renderAsync` to execute asynchronously.
+When using `renderAsync` or `compileAsync`, you can use `async/await` within your templates. For cases where no asynchronous functions are used, synchronous `render` and `compile` methods are also available.
 
 ```javascript
 import slm from 'slm-neo';
 
-const src = 'p = await this.fetchData()';
+const src = 'p = await fetchData()'; // Render this Slm code
 const model = {
   fetchData: async () => 'Async Content'
 };
 
 // Using renderAsync
-const html = await slm.renderAsync(src, model);
-
-// Using compileAsync
-const template = slm.compileAsync(src);
-const html2 = await template(model);
+const html = await slm.renderAsync(src, model, options);
 
 console.log(html); // <p>Async Content</p>
+ 
+// Using compileAsync (for template reuse)
+const template = await slm.compileAsync(src, options);
+const html2 = await template(model);
+ 
+console.log(html2); // <p>Async Content</p>
 ```
 
-Note: The standard `render` (and `compile`) methods are still available for traditional synchronous rendering, provided the template does not contain `await`.
+#### model
+The argument of `renderAsync`/`render` passes the data used in the template. Data can be accessed directly by name. Additionally, helper functions registered in an object specified by the `helpersName` option can also be accessed directly by name.
 
-### API Options
+Example usage:
 
-The `render`, `renderAsync`, `compile`, and `compileAsync` methods take an optional `options` object as their third argument.
+```javascript
+const model = {
+  page: {
+    title: "hello"
+  },
+  helpers: {
+    upper: (v) => v.toUpperCase()
+  }
+};
+const html = await slm.renderAsync(src, model, options);
+```
+```slim
+p = upper(page.title)
+/ → <p>HELLO</p>
+```
+
+#### options
+
+You can pass an options object as an argument to `renderAsync`/`render`.
 
 | Option | Description |
 | :--- | :--- |
@@ -62,10 +86,12 @@ The `render`, `renderAsync`, `compile`, and `compileAsync` methods take an optio
 | **`useCache`** | Set to `false` to disable the internal compilation cache. (Default: `true`) |
 | **`attrDelims`** | Customize attribute delimiters. Default: `{ '(': ')', '[': ']' }` |
 | **`mergeAttrs`** | Define how attributes are merged. Default: `{ class: ' ' }` |
-| **`format`** | Output format: `xhtml` (default) or `html`. In `html` mode, void elements are not self-closed with ` /`. |
-| **`autoDestructuring`** | Automatically destructure top-level data variables, enabling you to omit the `this.` prefix in templates. (Default: `true`) |
-| **`destructuringExclude`** | Array of string identifier names you wish to explicitly exclude from auto-destructuring. |
-| **`require`** | Provide a custom `require` function (via `createRequire`) to load Node.js/local modules within templates. Useful in ESM/Deno environments. |
+| **`format`** | Output format: `xhtml` (default) or `html`. In `html` mode, void elements are not self-closed with `/`. |
+| **`autoDestructuring`** | Automatically destructure top-level data variables, enabling you to omit the `this.` prefix. (Default: `true`) |
+| **`destructuringExclude`** | Array of string identifier names to explicitly exclude from auto-destructuring. |
+| **`helpersName`** | The name of the object containing helper functions within the model. Default is `helpers`. Auto-destructuring allows access without the prefix. |
+| **`contentName`** | The name of the content property within the model. Default is `content`. When not using layout functions (`extend()`), it can be accessed via `content()`. |
+| **`require`** | A custom `require` function to load modules within templates. Available in ESM/Deno environments. |
 
 Example: with options
 
@@ -106,164 +132,217 @@ app.set('view engine', 'slm');
 app.engine('slm', slm.__express);
 ```
 
-### Differences from Ruby Slim
+## Differences from Ruby Slim
 
-If you are already familiar with [Ruby Slim](http://slim-lang.com/), here are the key differences in Slm-neo:
+If you already know [Ruby Slim](http://slim-lang.com/), here are the key differences in Slm-neo:
 
 - **JavaScript-based Logic**: Use JavaScript for control flow and expressions.
-  - `- if (this.items.length)` instead of `- if items.any?`
-  - `- for (let item of this.items)` instead of `- for item in items`
-- **Model Context (`this`)**: All data passed to the template is bound to the `this` context. (You can omit `this.` for top-level data and filters thanks to auto-destructuring!)
-- **ES6-style Interpolation**: Use `${var}` or `${this.var}` instead of `#{var}`.
-  - `${var}`: HTML-escaped output.
-  - `${=var}`: Unescaped (raw) output.
-- **Native Async/Await**: You can call and `await` asynchronous functions directly within templates.
-  - `p = await this.db.fetchData()`
-  - `- if (await this.checkPermission()) ...`
-- **Built-in Helpers**: Use `partial('name')` instead of `render 'name'`, and `content()` instead of `yield`.
-- **No Built-in Pretty Print**: Slm-neo focuses on rendering speed and keeping the core engine **slim and minimal**. It does not include a built-in HTML formatter (pretty-print). If you need formatted HTML output, please use an external library like [Prettier](https://prettier.io/) or [html-beautifier](https://www.npmjs.com/package/html-beautifier) after rendering.
+  - `- if items.length` (instead of Ruby's `- if items.any?`)
+  - `- for item of items` (instead of Ruby's `- for item in items`)
+- **Native Async/Await**: `async/await` is natively supported.
+	- `p = await db.fetchData()`
+	- `- if await checkPermission() ...`
+- **ES6-style Interpolation**: Use `${var}` instead of `#{var}`.
+	- `${var}`: HTML-escaped output.
+	- `${=var}`: Unescaped (raw) output.
+- **Pipeline Syntax**: Use `|` within `${}` for intuitive function chaining.
+	- `p Hello ${ name | upper }`
+- **Layouts**: Use `partial('name')` instead of `render 'name'`, and `content()` instead of `yield`.
+- **No Built-in Pretty Print**: Slm-neo focuses on speed and simplicity. It does not include an HTML formatter. Use external tools like [Prettier](https://prettier.io/) if you need formatted HTML.
 
 ## Syntax Reference
 
-Slm-neo inherits the core syntax from [Slim](http://slim-lang.com/), including indentation-based nesting, tag shortcuts (`#`, `.`), and line indicators (`|`, `-`, `=`, `==`).
+Slm-neo inherits core syntax from [Slim](http://slim-lang.com/), including indentation-based nesting, tag shortcuts (`#`, `.`), and line indicators (`|`, `-`, `=`, `==`).
 
 ### JavaScript Expressions
 
-All logic and expressions are written in JavaScript. Reference model data via the `this` context.
+All logic and expressions are written in JavaScript. Also, you can write more concisely using slm's unique notation.
 
-#### Output and Interpolation
-- `p = title`: Escaped output. Data explicitly passed to the template can be written without the `this.` prefix thanks to the newly introduced automatic destructuring feature. Top-level components like `this.title` or `this.filters` are automatically assigned.
-- `${title}`: HTML-escaped output using interpolation.
-- `${=rawHtml}`: Unescaped (raw) output.
-- `p == raw`: Unescaped output (same as `${=...}`).
+#### Auto-destructuring
 
-> **Note on Destructuring (Snapshot problem)**: Automatic destructuring evaluates the variable at the top-level of the rendering function. Dynamic getters or values that change during the rendering cycle might not reflect their latest state. In such advanced cases, explicitly use the `this.` prefix (e.g. `this.dynamicValue`). You can also completely disable this feature by passing `{ autoDestructuring: false }` to the options.
+By default, slm-neo automatically destructures the top-level properties of `this` at the start of the rendering function. This allows you to access properties directly without the `this.` prefix.
 
-#### Filter Pipeline Syntax
-Slm-neo supports a clean pipeline syntax via `|` to chain function calls and filters smoothly.
-**Note**: To prevent ambiguity with the JavaScript bitwise OR operator, pipeline syntax is strictly restricted to be used inside interpolation blocks `${ ... }`.
-- `p ${title | upper}`: Equivalent to `<p>` + `upper(title)` + `</p>`.
-- `p class="${ size | prefix('btn-') }"`: Equivalent to `prefix(size, 'btn-')`.
-- `${ message | replace("x", "y") | upper }`: Equivalent to `upper(replace(message, "x", "y"))`.
-- **Automatic Async Support**: Pipeline syntax automatically handles asynchronous filters. You don't need to write `await` inside the pipeline; it is injected automatically for each step when using `renderAsync`.
-    - `${ postId | getPostTitle | upper }`: Works even if `getPostTitle` is an async function.
+> **Note**: Auto-destructuring evaluates top-level properties of `this` at the start of the rendering function. For dynamic getters or properties whose values change during the rendering cycle, place them in a nested object or use the `this.` prefix explicitly (e.g. `this.dynamicValue`).
 
 #### Control Flow
-Blocks are defined by indentation. JavaScript syntax is supported natively.
-
+ 
+Blocks are defined by indentation. JavaScript syntax is supported natively. Parentheses `()` for keywords like `if`, `else if`, `for`, `while`, `switch`, and `catch` can be omitted.
+ 
 ```slim
-- if (this.isAdmin)
-  p Welcome, Admin!
-- else if (this.user)
-  p Welcome, ${this.user.name}
+- if isAdmin
+	p Welcome, Admin!
+- else if user
+	p Welcome, ${user.name}
 - else
-  p Please log in.
-
-- for (let item of this.items)
-  li = item.name
+	p Please log in.
+ 
+- for item of items
+	li = item.name
 ```
+ 
+#### Output and Interpolation
+ 
+`=` and `==`: JavaScript output lines
+ 
+- `p = user.name`: Escaped output.
+- `p == raw`: Unescaped (raw) output.
+ 
+`${}`: Text interpolation
+ 
+- `${title}`: HTML-escaped interpolation.
+- `${=rawHtml}`: Unescaped (raw) interpolation.
 
 #### Attributes
-- `a href=this.url`: Simple JS expressions.
-- `div(class=this.active ? "on" : "off")`: Use parentheses for complex expressions.
-- `input(type="checkbox" checked=this.isChecked)`: Boolean logic (supports `true`/`false`/`null`/`undefined`).
-- `a class=["btn", "btn-primary"]`: Arrays are automatically merged with spaces.
+ 
+- `a href=target.url`: Simple JS expressions.
+- `a(href=url)`: Parentheses can be used to group attributes like Pug.
+- `div class=(active ? "on" : "off")`: Parentheses are required for expressions containing spaces.
+- `div class="${active ? 'on' : 'off'}"`: Interpolation is also supported.
+- `input type="checkbox" checked=true`: Boolean logic support (`true`/`false`/`null`/`undefined`).
+- `a class=["btn", "btn-primary"]`: Arrays are automatically space-merged.
 
-#### Native Async/Await
-You can use `await` directly in your templates. This requires using `renderAsync()` or `compileAsync()`.
-
+#### Helper Pipeline Syntax
+ 
+Supports chaining via `|` inside `${ ... }` interpolation blocks.
+ 
+**Auto Async Support**: Pipelines automatically handle `await` for each step when using `renderAsync`.
+ 
 ```slim
-h1 = await this.getTitle()
-- for (let post of await this.fetchPosts())
-  article
-    h2 = post.title
-    p = await post.getContent()
+p ${title | upper}
+/ → <p>upper(title)</p>
+ 
+p class="${ size, 'btn-' | prefix }"
+/ → <p class="prefix(size, 'btn-')"></p>
+ 
+${ message | upper | getPostTitle("x", "y") }
+/ → await getPostTitle(upper(message), "x", "y")
+/ Works even if `getPostTitle` is an async function without explicit `await`.
 ```
 
 ### Layouts
-
-Slm-neo supports layout inheritance via the `- extend()` command. This separates the common structure from the page-specific content.
-
+ 
+Layout functionality allows you to separate the site's common structure from page-specific content.
+- `- extend('layout')`: Specifies the layout file.
+- `== content()`: Outputs the main template's content in the layout.
+- `- content('sidebar')`: Defines a named block.
+- `== content('sidebar')`: Outputs a named block.
+ 
 layout.slm
 ```slim
 doctype html
 html
-  body
-    header: h1 My Site
-    main
-      / Main content (yield)
-      == content()
+	body
+		header: h1 My Site
+		main
+			/ Main content
+			== content()
+		aside
+			/ Sidebar (named block)
+			== content('sidebar')
 ```
-
+ 
 index.slm
 ```slim
 - extend('layout')
-
+ 
+/ Define main content
 h2 Welcome to the page!
 p This content will be inserted into the layout's content() block.
+ 
+/ Define 'sidebar' named block
+- content('sidebar')
+	nav
+		ul
+			li: a href="/" Home
+			li: a href="/about" About
 ```
-
-- `== content()`: In a layout file, this outputs the main template's content (similar to Ruby's `yield`).
-- `== content('sidebar')`: Outputs a named block.
 
 #### Partials
-
+ 
 Use `partial` to render external sub-templates.
-
+ 
 ##### Basic Usage
+ 
 ```slim
-/ Renders 'header.slm' with the current context
+/ Renders ./header.slm with current context
 == partial('header')
-
-/ Renders 'item.slm' with a custom model
+ 
+/ Renders ./item.slm with custom model
 == partial('item', {name: 'Apple', price: 100})
 ```
-
+ 
 ##### Partial with a Block
-
+ 
 You can pass a block to a partial, which can then be output using `content()`.
-
+ 
 ```slim
 == partial('container')
-  p This content will be nested inside the container.
+	p This content will be nested inside the container.
 ```
-
+ 
 container.slm
 ```slim
 .wrapper
-  == content()
+	== content()
 ```
-
-##### Reusable Blocks (Mixins)
-
-Mixins are used to define reusable blocks **within the same template**.
+ 
+##### Mixins (Reusable Blocks)
+ 
+Mixins are used to define reusable blocks within the same template.
 
 ```slim
-/ Define a mixin once
+/ Define mixin
 = mixin('userCard', 'user')
-  .card
-    h3 = this.user.name
-    p = this.user.email
-
+	.card
+		/ You must use the `this.` prefix to access mixin arguments
+		h3 = this.user.name
+		p = this.user.email
+		/ You can access context variables without `this` (if auto-destructuring is enabled)
+		/ When rendering with slm.render(src, {systemStatus: 'OK'}, options)
+		p System Status: ${systemStatus}
+ 
 / Use it multiple times in your template
-= mixin('userCard', this.currentUser)
-- for (let friend of this.friends)
-  = mixin('userCard', friend)
+= mixin('userCard', currentUser)
+- for (let friend of friends)
+	= mixin('userCard', friend)
 ```
 
-##### Custom Block Helpers (Paired Shortcodes)
-
-When you use an output block (`= helperName "arg1"`) with an indented body, Slm-neo will internally append a **callback function** to the end of your arguments. This callback function, when executed, evaluates and returns the rendered HTML string of the indented block.
-
+> **Note**: You must always use the `this.` prefix to access dynamically passed mixin arguments (e.g. `this.user`). However, you can access context variables outside of the mixin (e.g. `systemStatus`) directly without `this`.
+ 
+##### Custom Block Helpers (Shortcodes)
+ 
+When using an output block with an indented body, Slm-neo internally appends a callback function to the last argument.
+slm-neo provides a `yieldBlock` function to resolve this callback synchronously or asynchronously. Executing this function returns the rendered HTML string of the indented block.
+ 
 ```slim
-= this.filters.wrapWithDiv("my-class")
-  p Nested block content
+= mySection(title)
+	p Nested block content
 ```
-
-The underlying JavaScript engine will execute:
-`this.filters.wrapWithDiv("my-class", function() { return "<p>Nested block content</p>"; })`
-
-If you are using this with 11ty Paired Shortcodes (which expect the block's `content` string to be the *first* argument), you will need to wrap the Slm execution in your 11ty plugin configuration to parse the callback properly.
+ 
+Helper function definition (external file)
+ 
+```javascript
+import slm from 'slm-neo';
+ 
+export const mySection = function(title, cb) {
+  // yieldBlock function
+  // 1st arg: context (usually 'this')
+  // 2nd arg: block from template (callback)
+  // 3rd arg: function receiving block result and returning final output
+  return slm.yieldBlock(this, cb, (content) => {
+    // 'content' contains the rendered HTML string.
+    // Sync/Async resolution is handled inside yieldBlock.
+    const html = `
+      <section class="custom-section">
+        <h2>${slm.escape(title)}</h2>
+        <div class="content">${content}</div>
+      </section>
+    `;
+    // Wrap with slm.safe to output as HTML
+    return slm.safe(html);
+  });
+};
+```
 
 ## Browser Usage
 
@@ -290,7 +369,7 @@ Includes the **Compiler** and the **Runtime**. Use this if you need to compile S
 ```html
 <script src="dist/slm-browser.js"></script>
 <script>
-  const html = Slm.render('h1 Hello ${this.name}', {name: 'World'});
+  const html = Slm.render('h1 Hello ${name}', {name: 'World'});
 </script>
 ```
 
@@ -302,7 +381,7 @@ On your server or during build time, you can convert your templates into JavaScr
 
 ```javascript
 // Build script (Node.js/Deno)
-const compiledSrc = slm.template.src('h1 Hello ${this.name}');
+const compiledSrc = slm.template.src('h1 Hello ${name}');
 // Save this string to a file (e.g., templates.js)
 ```
 
@@ -319,16 +398,16 @@ const compiledSrc = slm.template.src('h1 Hello ${this.name}');
 </script>
 ```
 
-# License
+## License
 
 Slm-neo is released under the [MIT license](http://www.opensource.org/licenses/MIT).
 
-# Acknowledgments
-
-This project is a modernized fork of the original [slm](https://github.com/slm-lang/slm) created by [slm-lang](https://github.com/slm-lang) team. We deeply appreciate their work in establishing the foundation of this elegant templating engine.
-
+## Acknowledgments
+ 
+This project is a modernized fork of the original [slm](https://github.com/slm-lang/slm) created by the [slm-lang](https://github.com/slm-lang) team. We deeply appreciate their work in establishing the foundation of this elegant templating engine.
+ 
 ### Special Thanks
-
+ 
 - **Yury Korolev** (https://github.com/yury), for the original [slm](https://github.com/slm-lang/slm)
 - **AnjLab** (http://anjlab.com), for a great original [slm-lang](https://github.com/slm-lang) team
 - **ngsctt** (https://github.com/ngsctt), for [slm-mod](https://github.com/ngsctt/slm-mod) and inspiring the modernization of the Slm engine

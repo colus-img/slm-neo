@@ -77,18 +77,22 @@ var SlmVM = (() => {
     const res = [];
     for (let i = 0, l = arr.length; i < l; i++) {
       const el = arr[i];
-      if (el !== null && el.length) {
+      if (el !== null && el !== void 0 && el !== "") {
         res.push(el);
       }
     }
     return res;
   }
-  function flatten(arr) {
+  function flatten(arr, stringify = true) {
     return arr.reduce((acc, val) => {
-      if (val === null) {
+      if (val === null || val === void 0) {
         return acc;
       }
-      return acc.concat(Array.isArray(val) ? flatten(val) : val.toString());
+      if (Array.isArray(val)) {
+        return acc.concat(flatten(val, stringify));
+      }
+      acc.push(stringify && val && val.toString ? val.toString() : val);
+      return acc;
     }, []);
   }
   VM._cache = {};
@@ -100,6 +104,13 @@ var SlmVM = (() => {
   var VMProto = VM.prototype;
   VM.escape = VMProto.escape = escape;
   VM.safe = VMProto.safe = safe;
+  VM.yieldBlock = function(context, cb, next) {
+    const res = cb.call(context);
+    if (res && typeof res.then === "function") {
+      return res.then(next);
+    }
+    return next(res);
+  };
   VMProto.j = j;
   VMProto.flatten = flatten;
   VMProto.rejectEmpty = rejectEmpty;
@@ -114,6 +125,13 @@ var SlmVM = (() => {
     this._extend = this.extend.bind(this);
     this._partial = this.partial.bind(this);
     this._mixin = this.mixin.bind(this);
+    this._yield = this.yieldBlock.bind(this);
+  };
+  VMProto._resolve = function(val, next) {
+    if (val && typeof val.then === "function") {
+      return val.then(next);
+    }
+    return next(val);
   };
   VMProto._loadWithCache = function(path) {
     const fn = this._cache[path];
@@ -161,78 +179,86 @@ var SlmVM = (() => {
     this.res = stashedResult;
     return res;
   };
-  VMProto.content = function() {
-    let cb, mod, name;
-    switch (arguments.length) {
-      case 0:
-        return safe(this.res);
-      case 1:
-        return safe(this._contents[arguments[0]] || "");
-      case 2:
-        name = arguments[0];
-        cb = arguments[1];
-        if (name) {
-          this._contents[name] = cb.call(this.m);
-          return "";
+  VMProto.content = function(...args) {
+    const [name, second, third] = args;
+    switch (args.length) {
+      case 0: {
+        if (!this.res && this.m) {
+          const fallback = this.m[this.contentName];
+          if (fallback !== void 0 && fallback !== null) {
+            return safe(typeof fallback === "function" ? fallback() : fallback);
+          }
         }
-        return cb.call(this.m);
-      case 3:
-        name = arguments[0];
-        mod = arguments[1];
-        cb = arguments[2];
+        return safe(this.res);
+      }
+      case 1:
+        return safe(this._contents[name] || "");
+      case 2: {
+        const cb = second;
+        if (!name) return cb.call(this.m);
+        return this._resolve(cb.call(this.m), (h) => {
+          this._contents[name] = h;
+          return "";
+        });
+      }
+      case 3: {
+        const mod = second;
+        const cb = third;
         const contents = this._contents[name] || "";
         switch (mod) {
-          case "default":
-            return safe(contents || cb.call(this.m));
+          case "default": {
+            if (contents) return safe(contents);
+            return this._resolve(cb.call(this.m), safe);
+          }
           case "append":
-            this._contents[name] = contents + cb.call(this.m);
-            return "";
+            return this._resolve(cb.call(this.m), (h) => {
+              this._contents[name] = contents + h;
+              return "";
+            });
           case "prepend":
-            this._contents[name] = cb.call(this.m) + contents;
-            return "";
+            return this._resolve(cb.call(this.m), (h) => {
+              this._contents[name] = h + contents;
+              return "";
+            });
         }
+      }
     }
   };
-  VMProto.mixin = function() {
-    const name = arguments[0];
-    const lastArgument = arguments[arguments.length - 1];
+  VMProto.yieldBlock = function(cb, next) {
+    return VM.yieldBlock(this.m, cb, next);
+  };
+  VMProto.mixin = function(...args) {
+    const [name] = args;
+    const lastArgument = args[args.length - 1];
     if (typeof lastArgument === "function") {
       const cb = lastArgument;
-      const args = [];
-      for (var i = 1; i < arguments.length - 1; i++) {
-        var param = arguments[i];
+      const mixinArgs = [];
+      for (let i = 1; i < args.length - 1; i++) {
+        let paramName = args[i];
         let defaultValue = null;
-        const m = param.match(/([^\=\s]*)\s*\=\s*(.*)/);
+        const m = paramName.match(/([^\=\s]*)\s*\=\s*(.*)/);
         if (m) {
-          param = m[1];
+          paramName = m[1];
           defaultValue = m[2];
         }
-        args.push({
-          name: param,
-          value: defaultValue
-        });
+        mixinArgs.push({ name: paramName, value: defaultValue });
       }
       if (name) {
         this._mixins[name] = {
-          arguments: args,
+          arguments: mixinArgs,
           body: cb
         };
-        return "";
       }
       return "";
     }
-    const referenceParams = [];
-    for (var i = 1; i < arguments.length; i++) {
-      referenceParams.push(arguments[i]);
-    }
+    const referenceParams = args.slice(1);
     let mixin = null;
-    for (var item in this._mixins) {
+    for (const item in this._mixins) {
       if (item === name) {
         const maybeMixin = this._mixins[item];
-        const paramsLength = maybeMixin.arguments.length;
         let mixinStatus = true;
-        for (var i = referenceParams.length; i < maybeMixin.arguments.length; i++) {
-          var param = maybeMixin.arguments[i];
+        for (let i = referenceParams.length; i < maybeMixin.arguments.length; i++) {
+          const param = maybeMixin.arguments[i];
           if (!param.value) {
             mixinStatus = false;
             break;
@@ -249,22 +275,20 @@ var SlmVM = (() => {
     }
     const mixinParams = mixin.arguments;
     if (referenceParams.length !== mixinParams.length) {
-      for (var i = referenceParams.length; i < mixinParams.length; i++) {
-        if (mixinParams[i]) {
-          referenceParams.push(mixinParams[i].value);
-        }
+      for (let i = referenceParams.length; i < mixinParams.length; i++) {
+        referenceParams.push(mixinParams[i].value);
       }
     }
     const params = {};
-    for (var i = 0; i < referenceParams.length; i++) {
+    for (let i = 0; i < referenceParams.length; i++) {
       params[mixinParams[i].name] = referenceParams[i];
     }
+    const mergedParams = {};
     if (this.m) {
-      for (var item in this.m) {
-        params[item] = this.m[item];
-      }
+      Object.assign(mergedParams, this.m);
     }
-    return mixin.body.call(params);
+    Object.assign(mergedParams, params);
+    return mixin.body.apply(mergedParams, [this]);
   };
   var vm_default = VM;
 

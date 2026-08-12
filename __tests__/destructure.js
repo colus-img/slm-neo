@@ -1,7 +1,7 @@
 import slm from "../lib/slm.js";
 
 describe("Destructuring (this omission)", () => {
-	it("should automatically extract variables safely", () => {
+	it("should automatically extract variables safely", async () => {
 		const src = "p = title\np = user.name\np = Math.round(price)";
 		const result = slm.render(src, {
 			title: "Hello",
@@ -11,16 +11,16 @@ describe("Destructuring (this omission)", () => {
 		expect(result).toBe("<p>Hello</p><p>Slm</p><p>101</p>");
 	});
 
-	it("should fallback to filters if missing in data", () => {
+	it("should fallback to helpers if missing in data", async () => {
 		const src = "p = upper(title)";
 		const result = slm.render(src, {
 			title: "hello",
-			filters: { upper: (v) => v.toUpperCase() },
+			helpers: { upper: (v) => v.toUpperCase() },
 		});
 		expect(result).toBe("<p>HELLO</p>");
 	});
 
-	it("should allow disabling autoDestructuring", () => {
+	it("should allow disabling autoDestructuring", async () => {
 		const src = "p = this.title";
 		// Trying to use title without this. throws ReferenceError when disabled
 		expect(() =>
@@ -34,7 +34,7 @@ describe("Destructuring (this omission)", () => {
 		expect(result).toBe("<p>Explicit</p>");
 	});
 
-	it("should respect destructuringExclude option", () => {
+	it("should respect destructuringExclude option", async () => {
 		// If excluded, it won't be inside the generated var { ... } = this
 		// Using a non-existent variable directly throws ReferenceError
 		expect(() =>
@@ -46,7 +46,7 @@ describe("Destructuring (this omission)", () => {
 		).toThrow();
 	});
 
-	it("should not break with var re-declarations in loops", () => {
+	it("should not break with var re-declarations in loops", async () => {
 		const src =
 			"- for (var i = 1; i <= 3; i++)\n  p = i\n- for (let j = 1; j <= 2; j++)\n  p = j";
 		const result = slm.render(src, {});

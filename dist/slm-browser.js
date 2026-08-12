@@ -47,6 +47,274 @@ var Slm = (() => {
     renderAsync: () => renderAsync
   });
 
+  // lib/vm.js
+  var ampRe = /&/g;
+  var escapeRe = /[&<>"]/;
+  var gtRe = />/g;
+  var ltRe = /</g;
+  var quotRe = /"/g;
+  function SafeStr(val) {
+    this.htmlSafe = true;
+    this._val = val;
+  }
+  SafeStr.prototype.toString = function() {
+    return this._val;
+  };
+  function safe(val) {
+    if (!val || val.htmlSafe) {
+      return val;
+    }
+    return new SafeStr(val);
+  }
+  function j(val) {
+    const str = `${JSON.stringify(val)}`;
+    return str.replace(/<\//g, "<\\/");
+  }
+  function escape(str) {
+    if (typeof str !== "string") {
+      if (!str) {
+        return "";
+      }
+      if (str.htmlSafe) {
+        return str.toString();
+      }
+      str = str.toString();
+    }
+    if (escapeRe.test(str)) {
+      if (str.includes("&")) {
+        str = str.replace(ampRe, "&amp;");
+      }
+      if (str.includes("<")) {
+        str = str.replace(ltRe, "&lt;");
+      }
+      if (str.includes(">")) {
+        str = str.replace(gtRe, "&gt;");
+      }
+      if (str.includes('"')) {
+        str = str.replace(quotRe, "&quot;");
+      }
+    }
+    return str;
+  }
+  function rejectEmpty(arr) {
+    const res = [];
+    for (let i = 0, l = arr.length; i < l; i++) {
+      const el = arr[i];
+      if (el !== null && el !== void 0 && el !== "") {
+        res.push(el);
+      }
+    }
+    return res;
+  }
+  function flatten(arr, stringify = true) {
+    return arr.reduce((acc, val) => {
+      if (val === null || val === void 0) {
+        return acc;
+      }
+      if (Array.isArray(val)) {
+        return acc.concat(flatten(val, stringify));
+      }
+      acc.push(stringify && val && val.toString ? val.toString() : val);
+      return acc;
+    }, []);
+  }
+  VM._cache = {};
+  function VM() {
+    this.reset();
+    this.template = this.basePath = null;
+    this._cache = VM._cache;
+  }
+  var VMProto = VM.prototype;
+  VM.escape = VMProto.escape = escape;
+  VM.safe = VMProto.safe = safe;
+  VM.yieldBlock = function(context, cb, next) {
+    const res = cb.call(context);
+    if (res && typeof res.then === "function") {
+      return res.then(next);
+    }
+    return next(res);
+  };
+  VMProto.j = j;
+  VMProto.flatten = flatten;
+  VMProto.rejectEmpty = rejectEmpty;
+  VMProto.resetCache = function() {
+    this._cache = VM._cache = {};
+  };
+  VMProto.cache = function(name, value) {
+    this._cache[name] = value;
+  };
+  VMProto.rebind = function() {
+    this._content = this.content.bind(this);
+    this._extend = this.extend.bind(this);
+    this._partial = this.partial.bind(this);
+    this._mixin = this.mixin.bind(this);
+    this._yield = this.yieldBlock.bind(this);
+  };
+  VMProto._resolve = function(val, next) {
+    if (val && typeof val.then === "function") {
+      return val.then(next);
+    }
+    return next(val);
+  };
+  VMProto._loadWithCache = function(path) {
+    const fn = this._cache[path];
+    if (fn) {
+      return fn;
+    }
+    const result = this._cache[path] = this._loadWithoutCache(path);
+    return result;
+  };
+  VMProto._load = VMProto._loadWithCache;
+  VMProto.reset = function() {
+    this._contents = {};
+    this._mixins = {};
+    this.res = "";
+    this.stack = [];
+    this.m = null;
+  };
+  VMProto.pop = function(sp) {
+    const currentFilename = this.filename;
+    let l = this.stack.length;
+    while (sp < l--) {
+      this.filename = this.stack.pop();
+      this._load(this.filename).call(this.m, this);
+    }
+    this.filename = currentFilename;
+    return this.res;
+  };
+  VMProto.extend = function(path) {
+    this.stack.push(this._resolvePath(path));
+  };
+  VMProto.partial = function(path, model, cb) {
+    const stashedResult = this.res;
+    if (cb) {
+      this.res = cb.call(this.m, this);
+    }
+    if (model === void 0) {
+      model = this.m;
+    }
+    path = this._resolvePath(path);
+    const f = this._load(path), stashedFilename = this.filename, stashedModel = this.m;
+    this.filename = path;
+    const res = safe(f.call(this.m = model, this));
+    this.m = stashedModel;
+    this.filename = stashedFilename;
+    this.res = stashedResult;
+    return res;
+  };
+  VMProto.content = function(...args) {
+    const [name, second, third] = args;
+    switch (args.length) {
+      case 0: {
+        if (!this.res && this.m) {
+          const fallback = this.m[this.contentName];
+          if (fallback !== void 0 && fallback !== null) {
+            return safe(typeof fallback === "function" ? fallback() : fallback);
+          }
+        }
+        return safe(this.res);
+      }
+      case 1:
+        return safe(this._contents[name] || "");
+      case 2: {
+        const cb = second;
+        if (!name) return cb.call(this.m);
+        return this._resolve(cb.call(this.m), (h) => {
+          this._contents[name] = h;
+          return "";
+        });
+      }
+      case 3: {
+        const mod = second;
+        const cb = third;
+        const contents = this._contents[name] || "";
+        switch (mod) {
+          case "default": {
+            if (contents) return safe(contents);
+            return this._resolve(cb.call(this.m), safe);
+          }
+          case "append":
+            return this._resolve(cb.call(this.m), (h) => {
+              this._contents[name] = contents + h;
+              return "";
+            });
+          case "prepend":
+            return this._resolve(cb.call(this.m), (h) => {
+              this._contents[name] = h + contents;
+              return "";
+            });
+        }
+      }
+    }
+  };
+  VMProto.yieldBlock = function(cb, next) {
+    return VM.yieldBlock(this.m, cb, next);
+  };
+  VMProto.mixin = function(...args) {
+    const [name] = args;
+    const lastArgument = args[args.length - 1];
+    if (typeof lastArgument === "function") {
+      const cb = lastArgument;
+      const mixinArgs = [];
+      for (let i = 1; i < args.length - 1; i++) {
+        let paramName = args[i];
+        let defaultValue = null;
+        const m = paramName.match(/([^\=\s]*)\s*\=\s*(.*)/);
+        if (m) {
+          paramName = m[1];
+          defaultValue = m[2];
+        }
+        mixinArgs.push({ name: paramName, value: defaultValue });
+      }
+      if (name) {
+        this._mixins[name] = {
+          arguments: mixinArgs,
+          body: cb
+        };
+      }
+      return "";
+    }
+    const referenceParams = args.slice(1);
+    let mixin = null;
+    for (const item in this._mixins) {
+      if (item === name) {
+        const maybeMixin = this._mixins[item];
+        let mixinStatus = true;
+        for (let i = referenceParams.length; i < maybeMixin.arguments.length; i++) {
+          const param = maybeMixin.arguments[i];
+          if (!param.value) {
+            mixinStatus = false;
+            break;
+          }
+        }
+        if (mixinStatus) {
+          mixin = maybeMixin;
+          break;
+        }
+      }
+    }
+    if (!mixin) {
+      return "";
+    }
+    const mixinParams = mixin.arguments;
+    if (referenceParams.length !== mixinParams.length) {
+      for (let i = referenceParams.length; i < mixinParams.length; i++) {
+        referenceParams.push(mixinParams[i].value);
+      }
+    }
+    const params = {};
+    for (let i = 0; i < referenceParams.length; i++) {
+      params[mixinParams[i].name] = referenceParams[i];
+    }
+    const mergedParams = {};
+    if (this.m) {
+      Object.assign(mergedParams, this.m);
+    }
+    Object.assign(mergedParams, params);
+    return mixin.body.apply(mergedParams, [this]);
+  };
+  var vm_default = VM;
+
   // lib/custom_require_browser.js
   var customRequire = null;
 
@@ -224,6 +492,10 @@ return ${callMethod || "exps"};}`;
   function Slm() {
   }
   var p3 = Slm.prototype = new html_default();
+  p3.exec = function(exp, options) {
+    this.options = options || {};
+    return html_default.prototype.exec.call(this, exp);
+  };
   p3.on_slm_text = function(exps) {
     exps[2] = this.compile(exps[2]);
     return exps;
@@ -357,7 +629,7 @@ return ${callMethod || "exps"};}`;
     code = this._expandCallback(code, content);
     return ["slm", "output", exps[2], code, this.compile(content)];
   };
-  p5._expandCode = (code, postCode) => {
+  p5._expandCode = function(code, postCode) {
     let index;
     const m = callbackRe.exec(code);
     if (m) {
@@ -375,7 +647,7 @@ return ${callMethod || "exps"};}`;
       if (!/^\s*$/.test(args)) {
         code += ",";
       }
-      code += "function()";
+      code += this.options.useAsync ? "async function()" : "function()";
     }
     return [code, postCode];
   };
@@ -416,7 +688,10 @@ return ${callMethod || "exps"};}`;
           const tmp = this._uniqueName();
           return [
             "multi",
-            ["code", `var ${tmp}=${code}`],
+            [
+              "code",
+              `var ${tmp}=${this.options.useAsync ? "await " : ""}${code}`
+            ],
             [
               "switch",
               tmp,
@@ -444,6 +719,25 @@ return ${callMethod || "exps"};}`;
     const delimiter = this._mergeAttrs[this._attr];
     if (delimiter) {
       const tmp = this._uniqueName();
+      if (this.options.useAsync) {
+        return [
+          "multi",
+          [
+            "code",
+            `var ${tmp}=await (async (v) => Array.isArray(v) ? Promise.all(vm.flatten(v, false)) : v)(${code});`
+          ],
+          [
+            "if",
+            `${tmp} instanceof Array`,
+            [
+              "multi",
+              ["code", `${tmp}=vm.rejectEmpty(${tmp});`],
+              ["escape", escape2, ["dynamic", `${tmp}.join("${delimiter}")`]]
+            ],
+            ["escape", escape2, ["dynamic", tmp]]
+          ]
+        ];
+      }
       return [
         "multi",
         ["code", `var ${tmp}=${code};`],
@@ -459,7 +753,11 @@ return ${callMethod || "exps"};}`;
         ]
       ];
     }
-    return ["escape", escape2, ["dynamic", code]];
+    return [
+      "escape",
+      escape2,
+      ["dynamic", this.options.useAsync ? `await ${code}` : code]
+    ];
   };
   var code_attributes_default = CodeAttributes;
 
@@ -516,7 +814,7 @@ return ${callMethod || "exps"};}`;
         // expression (which is a requirement for Temple).
         [
           "block",
-          `var ${tmp}=${code}`,
+          this.options.useAsync ? `var ${tmp}=await ${code}` : `var ${tmp}=${code}`,
           // Capture the content of a block in a separate buffer. This means
           // that `yield` will not output the content to the current buffer,
           // but rather return the output.
@@ -528,10 +826,11 @@ return ${callMethod || "exps"};}`;
           ["capture", tmp2, `var ${tmp2}='';`, content]
         ],
         // Output the content.
-        ["escape", "escape", ["dynamic", tmp]]
+        ["escape", escape2, ["dynamic", tmp]]
       ];
     }
-    return ["multi", ["escape", escape2, ["dynamic", code]], content];
+    const finalCode = this.options.useAsync ? `(await ${code})` : code;
+    return ["multi", ["escape", escape2, ["dynamic", finalCode]], content];
   };
   p8.on_slm_text = function(exps) {
     return this.compile(exps[2]);
@@ -639,250 +938,6 @@ return ${callMethod || "exps"};}`;
     return res;
   };
   var engine_default = Engine2;
-
-  // lib/vm.js
-  var ampRe = /&/g;
-  var escapeRe = /[&<>"]/;
-  var gtRe = />/g;
-  var ltRe = /</g;
-  var quotRe = /"/g;
-  function SafeStr(val) {
-    this.htmlSafe = true;
-    this._val = val;
-  }
-  SafeStr.prototype.toString = function() {
-    return this._val;
-  };
-  function safe(val) {
-    if (!val || val.htmlSafe) {
-      return val;
-    }
-    return new SafeStr(val);
-  }
-  function j(val) {
-    const str = `${JSON.stringify(val)}`;
-    return str.replace(/<\//g, "<\\/");
-  }
-  function escape(str) {
-    if (typeof str !== "string") {
-      if (!str) {
-        return "";
-      }
-      if (str.htmlSafe) {
-        return str.toString();
-      }
-      str = str.toString();
-    }
-    if (escapeRe.test(str)) {
-      if (str.includes("&")) {
-        str = str.replace(ampRe, "&amp;");
-      }
-      if (str.includes("<")) {
-        str = str.replace(ltRe, "&lt;");
-      }
-      if (str.includes(">")) {
-        str = str.replace(gtRe, "&gt;");
-      }
-      if (str.includes('"')) {
-        str = str.replace(quotRe, "&quot;");
-      }
-    }
-    return str;
-  }
-  function rejectEmpty(arr) {
-    const res = [];
-    for (let i = 0, l = arr.length; i < l; i++) {
-      const el = arr[i];
-      if (el !== null && el.length) {
-        res.push(el);
-      }
-    }
-    return res;
-  }
-  function flatten(arr) {
-    return arr.reduce((acc, val) => {
-      if (val === null) {
-        return acc;
-      }
-      return acc.concat(Array.isArray(val) ? flatten(val) : val.toString());
-    }, []);
-  }
-  VM._cache = {};
-  function VM() {
-    this.reset();
-    this.template = this.basePath = null;
-    this._cache = VM._cache;
-  }
-  var VMProto = VM.prototype;
-  VM.escape = VMProto.escape = escape;
-  VM.safe = VMProto.safe = safe;
-  VMProto.j = j;
-  VMProto.flatten = flatten;
-  VMProto.rejectEmpty = rejectEmpty;
-  VMProto.resetCache = function() {
-    this._cache = VM._cache = {};
-  };
-  VMProto.cache = function(name, value) {
-    this._cache[name] = value;
-  };
-  VMProto.rebind = function() {
-    this._content = this.content.bind(this);
-    this._extend = this.extend.bind(this);
-    this._partial = this.partial.bind(this);
-    this._mixin = this.mixin.bind(this);
-  };
-  VMProto._loadWithCache = function(path) {
-    const fn = this._cache[path];
-    if (fn) {
-      return fn;
-    }
-    const result = this._cache[path] = this._loadWithoutCache(path);
-    return result;
-  };
-  VMProto._load = VMProto._loadWithCache;
-  VMProto.reset = function() {
-    this._contents = {};
-    this._mixins = {};
-    this.res = "";
-    this.stack = [];
-    this.m = null;
-  };
-  VMProto.pop = function(sp) {
-    const currentFilename = this.filename;
-    let l = this.stack.length;
-    while (sp < l--) {
-      this.filename = this.stack.pop();
-      this._load(this.filename).call(this.m, this);
-    }
-    this.filename = currentFilename;
-    return this.res;
-  };
-  VMProto.extend = function(path) {
-    this.stack.push(this._resolvePath(path));
-  };
-  VMProto.partial = function(path, model, cb) {
-    const stashedResult = this.res;
-    if (cb) {
-      this.res = cb.call(this.m, this);
-    }
-    if (model === void 0) {
-      model = this.m;
-    }
-    path = this._resolvePath(path);
-    const f = this._load(path), stashedFilename = this.filename, stashedModel = this.m;
-    this.filename = path;
-    const res = safe(f.call(this.m = model, this));
-    this.m = stashedModel;
-    this.filename = stashedFilename;
-    this.res = stashedResult;
-    return res;
-  };
-  VMProto.content = function() {
-    let cb, mod, name;
-    switch (arguments.length) {
-      case 0:
-        return safe(this.res);
-      case 1:
-        return safe(this._contents[arguments[0]] || "");
-      case 2:
-        name = arguments[0];
-        cb = arguments[1];
-        if (name) {
-          this._contents[name] = cb.call(this.m);
-          return "";
-        }
-        return cb.call(this.m);
-      case 3:
-        name = arguments[0];
-        mod = arguments[1];
-        cb = arguments[2];
-        const contents = this._contents[name] || "";
-        switch (mod) {
-          case "default":
-            return safe(contents || cb.call(this.m));
-          case "append":
-            this._contents[name] = contents + cb.call(this.m);
-            return "";
-          case "prepend":
-            this._contents[name] = cb.call(this.m) + contents;
-            return "";
-        }
-    }
-  };
-  VMProto.mixin = function() {
-    const name = arguments[0];
-    const lastArgument = arguments[arguments.length - 1];
-    if (typeof lastArgument === "function") {
-      const cb = lastArgument;
-      const args = [];
-      for (var i = 1; i < arguments.length - 1; i++) {
-        var param = arguments[i];
-        let defaultValue = null;
-        const m = param.match(/([^\=\s]*)\s*\=\s*(.*)/);
-        if (m) {
-          param = m[1];
-          defaultValue = m[2];
-        }
-        args.push({
-          name: param,
-          value: defaultValue
-        });
-      }
-      if (name) {
-        this._mixins[name] = {
-          arguments: args,
-          body: cb
-        };
-        return "";
-      }
-      return "";
-    }
-    const referenceParams = [];
-    for (var i = 1; i < arguments.length; i++) {
-      referenceParams.push(arguments[i]);
-    }
-    let mixin = null;
-    for (var item in this._mixins) {
-      if (item === name) {
-        const maybeMixin = this._mixins[item];
-        const paramsLength = maybeMixin.arguments.length;
-        let mixinStatus = true;
-        for (var i = referenceParams.length; i < maybeMixin.arguments.length; i++) {
-          var param = maybeMixin.arguments[i];
-          if (!param.value) {
-            mixinStatus = false;
-            break;
-          }
-        }
-        if (mixinStatus) {
-          mixin = maybeMixin;
-          break;
-        }
-      }
-    }
-    if (!mixin) {
-      return "";
-    }
-    const mixinParams = mixin.arguments;
-    if (referenceParams.length !== mixinParams.length) {
-      for (var i = referenceParams.length; i < mixinParams.length; i++) {
-        if (mixinParams[i]) {
-          referenceParams.push(mixinParams[i].value);
-        }
-      }
-    }
-    const params = {};
-    for (var i = 0; i < referenceParams.length; i++) {
-      params[mixinParams[i].name] = referenceParams[i];
-    }
-    if (this.m) {
-      for (var item in this.m) {
-        params[item] = this.m[item];
-      }
-    }
-    return mixin.body.call(params);
-  };
-  var vm_default = VM;
 
   // lib/filters/escape.js
   function Escape() {
@@ -1015,6 +1070,73 @@ return ${callMethod || "exps"};}`;
   };
   var fast_default = Fast;
 
+  // lib/utils/pipeline_parser.js
+  function splitPipeline(code) {
+    const parts = [];
+    let current = "";
+    let inQuote = null;
+    for (let i = 0; i < code.length; i++) {
+      const c = code[i];
+      if (inQuote) {
+        current += c;
+        if (c === inQuote && code[i - 1] !== "\\") inQuote = null;
+      } else {
+        if (c === '"' || c === "'" || c === "`") {
+          inQuote = c;
+          current += c;
+        } else if (c === "|" && code[i + 1] !== "|" && code[i - 1] !== "|") {
+          parts.push(current.trim());
+          current = "";
+        } else {
+          current += c;
+        }
+      }
+    }
+    parts.push(current.trim());
+    return parts;
+  }
+  function parsePipeline(code, initialValue = null, options = {}) {
+    const useAsync = options.useAsync !== false;
+    const parts = splitPipeline(code);
+    let result;
+    let startIndex;
+    if (initialValue !== null) {
+      result = initialValue;
+      startIndex = 0;
+    } else {
+      if (parts.length <= 1) return code;
+      result = parts[0];
+      startIndex = 1;
+    }
+    for (let i = startIndex; i < parts.length; i++) {
+      let helper = parts[i];
+      if (!helper) continue;
+      let funcName, args;
+      const parenMatch = helper.match(
+        /^([a-zA-Z_$][a-zA-Z0-9_$$.]*)\s*\((.*)\)$/
+      );
+      if (parenMatch) {
+        funcName = parenMatch[1];
+        args = parenMatch[2];
+      } else {
+        const spaceMatch = helper.match(/^([a-zA-Z_$][a-zA-Z0-9_$$.]*)\s+(.+)$/);
+        if (spaceMatch) {
+          funcName = spaceMatch[1];
+          args = spaceMatch[2];
+        } else {
+          funcName = helper.trim();
+          args = "";
+        }
+      }
+      if (args.trim().length > 0) {
+        result = useAsync ? `(await ${funcName}(${result}, ${args}))` : `${funcName}(${result}, ${args})`;
+      } else {
+        result = useAsync ? `(await ${funcName}(${result}))` : `${funcName}(${result})`;
+      }
+    }
+    return result;
+  }
+
   // lib/filters/interpolate.js
   var escapedInterpolationRe = /^\\\$\{/;
   var interpolationRe = /^\$\{/;
@@ -1038,13 +1160,8 @@ return ${callMethod || "exps"};}`;
         str = res[0];
         code = res[1];
         const escape2 = code[0] !== "=";
-        block.push([
-          "slm",
-          "output",
-          escape2,
-          escape2 ? code : code.slice(1),
-          ["multi"]
-        ]);
+        code = parsePipeline(escape2 ? code : code.slice(1), null, this.options);
+        block.push(["slm", "output", escape2, code, ["multi"]]);
       } else {
         m = staticTextRe.exec(str);
         block.push(["static", m[0]]);
@@ -1665,6 +1782,199 @@ ${this._line}`;
   };
   var parser_default = Parser;
 
+  // lib/utils/extract_identifiers.js
+  var reservedWords = /* @__PURE__ */ new Set([
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "null",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+    "let",
+    "await",
+    "arguments"
+  ]);
+  var globals = /* @__PURE__ */ new Set([
+    "Math",
+    "JSON",
+    "Date",
+    "console",
+    "Array",
+    "Object",
+    "Intl",
+    "String",
+    "Number",
+    "Boolean",
+    "RegExp",
+    "Error",
+    "Promise",
+    "window",
+    "global",
+    "globalThis",
+    "process",
+    "require",
+    "undefined",
+    "NaN",
+    "ArrayBuffer",
+    "DataView",
+    "Float32Array",
+    "Float64Array",
+    "Int8Array",
+    "Int16Array",
+    "Int32Array",
+    "Map",
+    "Set",
+    "WeakMap",
+    "WeakSet",
+    "Symbol",
+    "Reflect",
+    "Proxy",
+    "decodeURI",
+    "decodeURIComponent",
+    "encodeURI",
+    "encodeURIComponent",
+    "escape",
+    "unescape",
+    "eval",
+    "isFinite",
+    "isNaN",
+    "parseFloat",
+    "parseInt",
+    "Infinity"
+  ]);
+  var slmInternals = /* @__PURE__ */ new Set([
+    "vm",
+    "sp",
+    "content",
+    "extend",
+    "partial",
+    "mixin",
+    "yieldBlock",
+    "j",
+    "_b",
+    "require"
+  ]);
+  function extractIdentifiers(code, excludeList = []) {
+    if (typeof code !== "string") return [];
+    const excludeSet = excludeList instanceof Set ? excludeList : new Set(excludeList);
+    let cleanCode = code.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, "");
+    cleanCode = cleanCode.replace(/`((?:\\.|[^`])*)`/g, (_, inner) => {
+      const parts = [];
+      let pos = 0;
+      while ((pos = inner.indexOf("${", pos)) !== -1) {
+        let end = pos + 2;
+        let depth = 1;
+        while (end < inner.length && depth > 0) {
+          const char = inner[end++];
+          if (char === "{") depth++;
+          else if (char === "}") depth--;
+          else if (char === "\\") end++;
+        }
+        if (depth === 0) {
+          parts.push(inner.substring(pos + 2, end - 1));
+        }
+        pos = end;
+      }
+      return parts.join(" ");
+    });
+    cleanCode = cleanCode.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+    cleanCode = cleanCode.replace(
+      /\b(?:var|let|const|catch|function)\s+([^;=]*)/g,
+      ""
+    );
+    const re = /(?:^|[^a-zA-Z0-9_$.])([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+    const identifiers = /* @__PURE__ */ new Set();
+    let m;
+    while ((m = re.exec(cleanCode)) !== null) {
+      const id = m[1];
+      if (reservedWords.has(id)) continue;
+      if (globals.has(id)) continue;
+      if (slmInternals.has(id)) continue;
+      if (excludeSet.has(id)) continue;
+      identifiers.add(id);
+    }
+    return Array.from(identifiers);
+  }
+  function extractLocalDeclarations(code) {
+    if (typeof code !== "string") return [];
+    const locals = /* @__PURE__ */ new Set();
+    const cleanCode = code.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, "");
+    const declRe = /\b(?:var|let|const|catch|function)\s+([^;]*)?/g;
+    let m;
+    while ((m = declRe.exec(cleanCode)) !== null) {
+      const part = m[1];
+      if (!part) continue;
+      const idOnlyPart = part.replace(/=[^,;]*/g, "");
+      const ids = idOnlyPart.match(/[a-zA-Z_$][a-zA-Z0-9_$]*/g) || [];
+      ids.forEach((id) => locals.add(id));
+    }
+    const destructureRe = /\b(?:var|let|const)\s*[\[{]([^;=]*)[\]}]/g;
+    let dm;
+    while ((dm = destructureRe.exec(cleanCode)) !== null) {
+      const inner = dm[1];
+      const idOnlyPart = inner.replace(/:[^,}\]]*/g, "");
+      const ids = idOnlyPart.match(/[a-zA-Z_$][a-zA-Z0-9_$]*/g) || [];
+      ids.forEach((id) => locals.add(id));
+    }
+    return Array.from(locals);
+  }
+
+  // lib/filters/identifier_collector.js
+  function IdentifierCollector() {
+  }
+  var p14 = IdentifierCollector.prototype = new slm_default();
+  p14._collectIds = function(code) {
+    if (this.options && this.options._identifiers) {
+      const ids = extractIdentifiers(code, this.options.destructuringExclude);
+      ids.forEach((id) => this.options._identifiers.add(id));
+      const locals = extractLocalDeclarations(code);
+      locals.forEach((id) => this.options._locals.add(id));
+    }
+  };
+  p14.on_slm_output = function(exps) {
+    this._collectIds(exps[3]);
+    return ["slm", "output", exps[2], exps[3], this.compile(exps[4])];
+  };
+  p14.on_slm_control = function(exps) {
+    this._collectIds(exps[2]);
+    return ["slm", "control", exps[2], this.compile(exps[3])];
+  };
+  p14.on_slm_attrvalue = function(exps) {
+    this._collectIds(exps[3]);
+    return ["slm", "attrvalue", exps[2], exps[3]];
+  };
+  var identifier_collector_default = IdentifierCollector;
+
   // lib/filters/static_merger.js
   function StaticMerger() {
   }
@@ -1696,31 +2006,31 @@ ${this._line}`;
   function Generator() {
     this._buffer = "_b";
   }
-  var p14 = Generator.prototype = new dispatcher_default();
-  p14.exec = function(exp) {
+  var p15 = Generator.prototype = new dispatcher_default();
+  p15.exec = function(exp) {
     return [this.preamble(), this.compile(exp)].join("");
   };
-  p14.on = (exp) => {
+  p15.on = (exp) => {
     throw new Error(
       `Generator supports only core expressions - found ${JSON.stringify(exp)}`
     );
   };
-  p14.on_multi = function(exps) {
+  p15.on_multi = function(exps) {
     for (let i = 1, l = exps.length; i < l; i++) {
       exps[i] = this.compile(exps[i]);
     }
     exps.shift();
     return exps.join("\n");
   };
-  p14.on_newline = () => "";
-  p14.on_static = function(exps) {
+  p15.on_newline = () => "";
+  p15.on_static = function(exps) {
     return this.concat(JSON.stringify(exps[1]));
   };
-  p14.on_dynamic = function(exps) {
+  p15.on_dynamic = function(exps) {
     return this.concat(exps[1]);
   };
-  p14.on_code = (exps) => exps[1];
-  p14.concat = function(str) {
+  p15.on_code = (exps) => exps[1];
+  p15.concat = function(str) {
     return `${this._buffer}+=${str};`;
   };
   var generator_default = Generator;
@@ -1730,11 +2040,11 @@ ${this._line}`;
     this._buffer = name || "_b";
     this._initializer = initializer;
   }
-  var p15 = StringGenerator.prototype = new generator_default();
-  p15.preamble = function() {
+  var p16 = StringGenerator.prototype = new generator_default();
+  p16.preamble = function() {
     return this._initializer ? this._initializer : `var ${this._buffer}='';`;
   };
-  p15.on_capture = function(exps) {
+  p16.on_capture = function(exps) {
     const generator = new StringGenerator(exps[1], exps[2]);
     generator._dispatcher = this._dispatcher;
     return generator.exec(exps[3]);
@@ -1745,6 +2055,7 @@ ${this._line}`;
   function Template(VM2, options = {}) {
     options.mergeAttrs = options.mergeAttrs || { class: " " };
     options.attrDelims = options.attrDelims || { "(": ")", "[": "]" };
+    options.helpersName = options.helpersName || "helpers";
     this.VM = VM2;
     this._engine = new engine_default();
     this.Embeddeds = embedded_default;
@@ -1760,13 +2071,14 @@ ${this._line}`;
       this._engine.use(filters[i]);
     }
   }
-  var p16 = Template.prototype;
-  p16._defaultFilters = function(options) {
+  var p17 = Template.prototype;
+  p17._defaultFilters = function(options) {
     return [
       new parser_default(options.attrDelims),
       this._embedded,
       new interpolate_default(),
       new brackets_default(),
+      new identifier_collector_default(),
       new controls_default(),
       new attr_merge_default(options.mergeAttrs),
       new code_attributes_default(options.mergeAttrs),
@@ -1779,20 +2091,20 @@ ${this._line}`;
       new string_default()
     ];
   };
-  p16.registerEmbedded = function(name, engine) {
+  p17.registerEmbedded = function(name, engine) {
     this._embedded.register(name, engine);
   };
-  p16.registerEmbeddedFunction = function(name, renderer) {
+  p17.registerEmbeddedFunction = function(name, renderer) {
     const engine = new this.Embeddeds.InterpolateEngine(renderer);
     this.registerEmbedded(name, engine);
   };
-  p16.render = function(src2, model, options = {}, vm = new this.VM()) {
+  p17.render = function(src2, model, options = {}, vm = new this.VM()) {
     return this.compile(src2, options, vm)(model, vm);
   };
-  p16.renderAsync = function(src2, model, options = {}, vm = new this.VM()) {
+  p17.renderAsync = function(src2, model, options = {}, vm = new this.VM()) {
     return this.compileAsync(src2, options, vm)(model, vm);
   };
-  p16.compile = function(src2, options = {}, vm = new this.VM()) {
+  p17.compile = function(src2, options = {}, vm = new this.VM()) {
     const syncOptions = Object.assign({}, options, { useAsync: false });
     const fn = this.exec(src2, syncOptions, vm);
     const fnWrap = (model) => {
@@ -1802,7 +2114,7 @@ ${this._line}`;
     };
     return fnWrap;
   };
-  p16.compileAsync = function(src2, options = {}, vm = new this.VM()) {
+  p17.compileAsync = function(src2, options = {}, vm = new this.VM()) {
     const asyncOptions = Object.assign({}, options, { useAsync: true });
     const fn = this.exec(src2, asyncOptions, vm);
     return (model) => __async(this, null, function* () {
@@ -1811,43 +2123,63 @@ ${this._line}`;
       return res;
     });
   };
-  p16.exec = function(src2, options = {}, vm) {
+  p17.exec = function(src2, options = {}, vm) {
     if (options.useCache !== void 0 && !options.useCache) {
       vm._load = vm._loadWithoutCache;
     }
     vm.template = this;
     vm.basePath = options.basePath;
     vm.filename = options.filename;
+    vm.contentName = options.contentName || "content";
     vm.require = options.require || customRequire;
     vm.rebind();
     return vm.runInContext(this.src(src2, options), vm.filename)[0];
   };
-  p16.src = function(src2, options = {}) {
+  p17.src = function(src2, options = {}) {
+    options._identifiers = /* @__PURE__ */ new Set();
+    options._locals = /* @__PURE__ */ new Set();
+    const compiledContent = this._engine.exec(src2, options);
+    let header = "";
+    if (options.autoDestructuring !== false && options._identifiers && options._identifiers.size > 0) {
+      const rawIds = Array.from(options._identifiers);
+      const ids = rawIds.filter((id) => !options._locals.has(id));
+      if (ids.length > 0) {
+        const helpersName = options.helpersName || "helpers";
+        const mappings = ids.map((id) => `${id} = _f.${id}`).join(", ");
+        header = `var _f = this.${helpersName} || {};
+var { ${mappings} } = this;
+`;
+      }
+    }
     if (options.useAsync) {
       return [
         "[async function(vm) {",
         "vm.m = this;",
-        "var sp = vm.stack.length, require = vm.require, content = vm._content, extend = vm._extend, partial = vm._partial, mixin = vm._mixin, j = vm.j;",
-        this._engine.exec(src2, options),
+        "var sp = vm.stack.length, require = vm.require, content = vm._content, extend = vm._extend, partial = vm._partial, mixin = vm._mixin, yieldBlock = vm._yield, j = vm.j;",
+        header,
+        compiledContent,
         "vm.res=_b;return await vm.pop(sp);}]"
       ].join("");
     }
     return [
       "[function(vm) {",
       "vm.m = this;",
-      "var sp = vm.stack.length, require = vm.require, content = vm._content, extend = vm._extend, partial = vm._partial, mixin = vm._mixin, j = vm.j;",
-      this._engine.exec(src2, options),
+      "var sp = vm.stack.length, require = vm.require, content = vm._content, extend = vm._extend, partial = vm._partial, mixin = vm._mixin, yieldBlock = vm._yield, j = vm.j;",
+      header,
+      compiledContent,
       "vm.res=_b;return vm.pop(sp);}]"
     ].join("");
   };
-  p16.exports = function() {
+  p17.exports = function() {
     return {
       Template,
       template: this,
       compile: this.compile.bind(this),
       compileAsync: this.compileAsync.bind(this),
       render: this.render.bind(this),
-      renderAsync: this.renderAsync.bind(this)
+      renderAsync: this.renderAsync.bind(this),
+      yieldBlock: vm_default.yieldBlock,
+      safe: vm_default.safe
     };
   };
   var template_default = Template;
@@ -1856,15 +2188,15 @@ ${this._line}`;
   function VMBrowser() {
     vm_default.call(this);
   }
-  var p17 = VMBrowser.prototype = new vm_default();
-  p17.runInContext = (src, filename) => {
+  var p18 = VMBrowser.prototype = new vm_default();
+  p18.runInContext = (src, filename) => {
     if (filename) {
       src += `
 //# sourceURL=${filename}`;
     }
     return eval(src);
   };
-  p17._resolvePath = () => {
+  p18._resolvePath = () => {
   };
   var vm_browser_default = VMBrowser;
 

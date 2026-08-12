@@ -37,7 +37,10 @@
   "jest": {
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
-      "__tests__/helper.js$"
+      "__tests__/support/assertions.js$"
+    ],
+    "coveragePathIgnorePatterns": [
+      "__tests__/support/assertions.js$"
     ],
     "coverageThreshold": {
       "global": {

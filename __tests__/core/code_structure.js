@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml } from "../support/assertions.js";
 
 describe("Code structure", () => {
 	let template;
@@ -9,8 +9,8 @@ describe("Code structure", () => {
 		template = new Template(VMNode);
 	});
 
-	test("render with conditional", () => {
-		assertHtml(
+	test("render with conditional", async () => {
+		await assertHtml(
 			template,
 			[
 				"div",
@@ -24,8 +24,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with conditional else if", () => {
-		assertHtml(
+	test("render with conditional else if", async () => {
+		await assertHtml(
 			template,
 			[
 				"div",
@@ -41,8 +41,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with consecutive conditionals", () => {
-		assertHtml(
+	test("render with consecutive conditionals", async () => {
+		await assertHtml(
 			template,
 			[
 				"div",
@@ -56,8 +56,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with when string in condition", () => {
-		assertHtml(
+	test("render with when string in condition", async () => {
+		await assertHtml(
 			template,
 			["- if true", "  | Hello", '- if "when" !== null', "  |  world"],
 			"Hello world",
@@ -65,8 +65,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with conditional and following nonconditonal", () => {
-		assertHtml(
+	test("render with conditional and following nonconditonal", async () => {
+		await assertHtml(
 			template,
 			[
 				"div",
@@ -80,8 +80,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with case", () => {
-		assertHtml(
+	test("render with case", async () => {
+		await assertHtml(
 			template,
 			[
 				'- var url = require("node:url");',
@@ -127,8 +127,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with slm comments", () => {
-		assertHtml(
+	test("render with slm comments", async () => {
+		await assertHtml(
 			template,
 			["p Hello", "/ This is a comment", "  Another comment", "p World"],
 			"<p>Hello</p><p>World</p>",
@@ -136,8 +136,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with slm comments and empty line", () => {
-		assertHtml(
+	test("render with slm comments and empty line", async () => {
+		await assertHtml(
 			template,
 			["p Hello", "/ This is a comment", "", "  Another comment", "p World"],
 			"<p>Hello</p><p>World</p>",
@@ -145,8 +145,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with try catch", () => {
-		assertHtml(
+	test("render with try catch", async () => {
+		await assertHtml(
 			template,
 			["- try", "  p Try", "- catch error", "  p Catch", "p After"],
 			"<p>Try</p><p>After</p>",
@@ -154,8 +154,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with try catch exception", () => {
-		assertHtml(
+	test("render with try catch exception", async () => {
+		await assertHtml(
 			template,
 			[
 				"- try",
@@ -171,8 +171,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with try catch finally", () => {
-		assertHtml(
+	test("render with try catch finally", async () => {
+		await assertHtml(
 			template,
 			[
 				"- try",
@@ -195,19 +195,28 @@ describe("Code structure", () => {
 			template,
 			["= this.block()", "  p Block", "p After"],
 			"<p>Block</p><p>After</p>",
-			{},
+			{ syncOnly: true },
 		);
 	});
 
-	test("detects missing brace", () => {
+	test("injects async callback arg", async () => {
+		await assertHtml(
+			template,
+			["= this.block_async()", "  p Block", "p After"],
+			"<p>Block</p><p>After</p>",
+			{ asyncOnly: true },
+		);
+	});
+
+	test("detects missing brace", async () => {
 		const src = ["= this.block)", "  p Block", "p After"].join("\n");
 		expect(() => {
 			template.render(src, {}, {});
 		}).toThrow('Missing open brace \"(\" in `this.block)`');
 	});
 
-	test("content", () => {
-		assertHtml(
+	test("content", async () => {
+		await assertHtml(
 			template,
 			[
 				"= content()",
@@ -229,8 +238,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("simple mixin", () => {
-		assertHtml(
+	test("simple mixin", async () => {
+		await assertHtml(
 			template,
 			[
 				'= mixin("say", "a", "b")',
@@ -255,7 +264,24 @@ describe("Code structure", () => {
 				'  = mixin("say", [{ name: "a" }, { name: "b" }])',
 			],
 			'<div class="hello"><ul><li>a</li><li>b</li></ul></div>',
-			{},
+			{ syncOnly: true },
+		);
+	});
+
+	test("mixin with async loop", async () => {
+		await assertHtml(
+			template,
+			[
+				'= mixin("say", "list")',
+				"  ul",
+				"    - for (var i = 0; i < this.list.length; i++)",
+				"      - var item = this.list[i]",
+				"      li = item.name",
+				".hello",
+				'  = mixin("say", [{ name: "a" }, { name: "b" }])',
+			],
+			'<div class="hello"><ul><li>a</li><li>b</li></ul></div>',
+			{ asyncOnly: true },
 		);
 	});
 
@@ -275,12 +301,33 @@ describe("Code structure", () => {
 				"  p ${this.items}",
 			],
 			'<div class="hello"><p>Hello from mixin!</p><ul><li>a</li><li>b</li></ul><p>1,2,3</p></div>',
-			{},
+			{ syncOnly: true },
 		);
 	});
 
-	test("mixin with all defaults values", () => {
-		assertHtml(
+	test("mixin with async loop content", async () => {
+		await assertHtml(
+			template,
+			[
+				'= content("myContent")',
+				"  p Hello from mixin!",
+				'= mixin("say", "listOfItems")',
+				'  = content("myContent")',
+				"  ul",
+				"    - for (var i = 0; i < this.listOfItems.length; i++)",
+				"      - var item = this.listOfItems[i]",
+				"      li = item.name",
+				".hello",
+				'  = mixin("say", [{ name: "a" }, { name: "b" }])',
+				"  p ${this.items}",
+			],
+			'<div class="hello"><p>Hello from mixin!</p><ul><li>a</li><li>b</li></ul><p>1,2,3</p></div>',
+			{ asyncOnly: true },
+		);
+	});
+
+	test("mixin with all defaults values", async () => {
+		await assertHtml(
 			template,
 			[
 				'= mixin("say", "a = Slm", "b = mixin")',
@@ -293,8 +340,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("mixin with first default value", () => {
-		assertHtml(
+	test("mixin with first default value", async () => {
+		await assertHtml(
 			template,
 			[
 				'= mixin("say", "a = Slm", "b")',
@@ -307,8 +354,8 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("mixin with second default value", () => {
-		assertHtml(
+	test("mixin with second default value", async () => {
+		await assertHtml(
 			template,
 			[
 				'= mixin("say", "a", "b= mixin")',
@@ -321,7 +368,7 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("mixin with contexts", () => {
+	test("mixin with contexts", async () => {
 		const VM = template.VM;
 		const vm = new VM();
 		vm.resetCache();
@@ -354,17 +401,40 @@ describe("Code structure", () => {
 		);
 	});
 
+	test("mixin argument and context access specifications", async () => {
+		await assertHtml(
+			template,
+			[
+				'= mixin("card", "title", "desc")',
+				"  .card",
+				"    / Mixin arg (colliding) accessed with this.",
+				"    h1 = this.title",
+				"    / Context var (colliding) accessed without this.",
+				"    h2 = title",
+				"    / Mixin arg (non-colliding) accessed with this.",
+				"    p.desc = this.desc",
+				"    / Context var (non-colliding) accessed without this.",
+				"    p.global = globalText",
+				".hello",
+				'  = mixin("card", "Arg Title", "Arg Desc")',
+			],
+			'<div class="hello"><div class="card"><h1>Arg Title</h1><h2>Context Title</h2><p class="desc">Arg Desc</p><p class="global">Context Global</p></div></div>',
+			{},
+			{ title: "Context Title", globalText: "Context Global" },
+		);
+	});
+
 	test("render with forEach", () => {
 		assertHtml(
 			template,
 			["div", "  - this.items.forEach(function(i))", "    p = i"],
 			"<div><p>1</p><p>2</p><p>3</p></div>",
-			{},
+			{ syncOnly: true },
 		);
 	});
 
-	test("render with for", () => {
-		assertHtml(
+	test("render with for", async () => {
+		await assertHtml(
 			template,
 			["ul", "  - for var item in this.items", "    li = item"],
 			"<ul><li>0</li><li>1</li><li>2</li></ul>",
@@ -372,15 +442,15 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with multiline attributes", () => {
-		assertHtml(
+	test("render with multiline attributes", async () => {
+		await assertHtml(
 			template,
 			['div class="test\\', '    nice"'],
 			'<div class="test nice"></div>',
 			{},
 		);
 
-		assertHtml(
+		await assertHtml(
 			template,
 			["div class=[1,", '  2].join("")'],
 			'<div class="12"></div>',
@@ -388,15 +458,15 @@ describe("Code structure", () => {
 		);
 	});
 
-	test("render with multiline attributes", () => {
-		assertHtml(
+	test("render with multiline attributes", async () => {
+		await assertHtml(
 			template,
 			["div class=(1 + \\", "  2)"],
 			'<div class="3"></div>',
 			{},
 		);
 
-		assertHtml(
+		await assertHtml(
 			template,
 			["div class=[1,", '  2].join("")'],
 			'<div class="12"></div>',

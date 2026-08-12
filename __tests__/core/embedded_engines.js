@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml, assertSyntaxError } from "../support/assertions.js";
 
 describe("Embedded engines", () => {
 	let template;
@@ -13,8 +13,8 @@ describe("Embedded engines", () => {
 		);
 	});
 
-	test("render with javascript", () => {
-		assertHtml(
+	test("render with javascript", async () => {
+		await assertHtml(
 			template,
 			[
 				"javascript:   ",
@@ -29,8 +29,8 @@ describe("Embedded engines", () => {
 		);
 	});
 
-	test("render with script", () => {
-		assertHtml(
+	test("render with script", async () => {
+		await assertHtml(
 			template,
 			["script:   ", "  $(function() {});", "", "", "  alert('hello')", "p Hi"],
 			"<script>$(function() {});\n\n\nalert('hello')</script><p>Hi</p>",
@@ -38,8 +38,8 @@ describe("Embedded engines", () => {
 		);
 	});
 
-	test("render with javascript including variable", () => {
-		assertHtml(
+	test("render with javascript including variable", async () => {
+		await assertHtml(
 			template,
 			[
 				"- var func = \"alert('hello');\"",
@@ -51,8 +51,8 @@ describe("Embedded engines", () => {
 		);
 	});
 
-	test("render with css", () => {
-		assertHtml(
+	test("render with css", async () => {
+		await assertHtml(
 			template,
 			["css:", "  body { color: red; }"],
 			'<style type="text/css">body { color: red; }</style>',
@@ -60,8 +60,8 @@ describe("Embedded engines", () => {
 		);
 	});
 
-	test("render with custom engine", () => {
-		assertHtml(
+	test("render with custom engine", async () => {
+		await assertHtml(
 			template,
 			[
 				"customEngine:",
@@ -74,8 +74,11 @@ describe("Embedded engines", () => {
 	});
 
 	test("throws an error on unregistered engine", () => {
-		expect(() => {
-			assertHtml(template, ["unregistered:", "  text"], "", {});
-		}).toThrow("Embedded engine unregistered is not registered.");
+		return assertSyntaxError(
+			template,
+			["unregistered:", "  text"],
+			"Embedded engine unregistered is not registered.",
+			{},
+		);
 	});
 });

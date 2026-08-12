@@ -1,7 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
-import { assertSyntaxError } from "../helper.js";
+import { assertSyntaxError } from "../support/assertions.js";
 
 describe("Parser errors", () => {
 	let template;
@@ -10,8 +9,8 @@ describe("Parser errors", () => {
 		template = new Template(VMNode);
 	});
 
-	test("correct filename", () => {
-		assertSyntaxError(
+	test("correct filename", async () => {
+		await assertSyntaxError(
 			template,
 			["doctype 5", "  div Invalid"],
 			"Unexpected indentation\n  test.slm, Line 2, Column 3\n    div Invalid\n    ^\n",
@@ -19,8 +18,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("unexpected indentation", () => {
-		assertSyntaxError(
+	test("unexpected indentation", async () => {
+		await assertSyntaxError(
 			template,
 			["doctype 5", "  div Invalid"],
 			"Unexpected indentation\n  (__TEMPLATE__), Line 2, Column 3\n    div Invalid\n    ^\n",
@@ -28,8 +27,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("unexpected text indentation", () => {
-		assertSyntaxError(
+	test("unexpected text indentation", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  | text block", "   text"],
 			"Text line not indented deep enough.\nThe first text line defines the necessary text indentation.\n  (__TEMPLATE__), Line 3, Column 4\n     text\n     ^\n",
@@ -37,8 +36,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("unexpected text indentation in tag", () => {
-		assertSyntaxError(
+	test("unexpected text indentation in tag", async () => {
+		await assertSyntaxError(
 			template,
 			[
 				"ul",
@@ -56,8 +55,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("malformed indentation", () => {
-		assertSyntaxError(
+	test("malformed indentation", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  div Valid", " div Invalid"],
 			"Malformed indentation\n  (__TEMPLATE__), Line 3, Column 2\n   div Invalid\n   ^\n",
@@ -65,8 +64,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("malformed indentation 2", () => {
-		assertSyntaxError(
+	test("malformed indentation 2", async () => {
+		await assertSyntaxError(
 			template,
 			["  div Valid", " div Invalid"],
 			"Malformed indentation\n  (__TEMPLATE__), Line 2, Column 2\n   div Invalid\n   ^\n",
@@ -74,8 +73,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("unknown line indicator", () => {
-		assertSyntaxError(
+	test("unknown line indicator", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  div Valid", "  .valid", "  #valid", "  ?invalid"],
 			"Unknown line indicator\n  (__TEMPLATE__), Line 5, Column 3\n    ?invalid\n    ^\n",
@@ -83,8 +82,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("expected closing delimiter", () => {
-		assertSyntaxError(
+	test("expected closing delimiter", async () => {
+		await assertSyntaxError(
 			template,
 			["p", '  img(src="img.jpg" title=(title)'],
 			'Expected closing delimiter )\n  (__TEMPLATE__), Line 2, Column 34\n    img(src=\"img.jpg\" title=(title)\n                                   ^\n',
@@ -92,8 +91,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("missing quote unexpected end", () => {
-		assertSyntaxError(
+	test("missing quote unexpected end", async () => {
+		await assertSyntaxError(
 			template,
 			["p", '  img(src="img.jpg'],
 			"Unexpected end of file\n  (__TEMPLATE__), Line 2, Column 1\n  \n  ^\n",
@@ -101,8 +100,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("expected closing attribute delimiter", () => {
-		assertSyntaxError(
+	test("expected closing attribute delimiter", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  img src=[hash[1] + hash[2]"],
 			"Expected closing delimiter ]\n  (__TEMPLATE__), Line 2, Column 29\n    img src=[hash[1] + hash[2]\n                              ^\n",
@@ -110,8 +109,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("invalid empty attribute", () => {
-		assertSyntaxError(
+	test("invalid empty attribute", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  img[src= ]"],
 			"Invalid empty attribute\n  (__TEMPLATE__), Line 2, Column 12\n    img[src= ]\n             ^\n",
@@ -119,8 +118,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("invalid empty attribute 2", () => {
-		assertSyntaxError(
+	test("invalid empty attribute 2", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  img[src=]"],
 			"Invalid empty attribute\n  (__TEMPLATE__), Line 2, Column 11\n    img[src=]\n            ^\n",
@@ -128,8 +127,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("invalid empty attribute 3", () => {
-		assertSyntaxError(
+	test("invalid empty attribute 3", async () => {
+		await assertSyntaxError(
 			template,
 			["p", "  img src="],
 			"Invalid empty attribute\n  (__TEMPLATE__), Line 2, Column 11\n    img src=\n            ^\n",
@@ -137,8 +136,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("missing tag in block expansion", () => {
-		assertSyntaxError(
+	test("missing tag in block expansion", async () => {
+		await assertSyntaxError(
 			template,
 			["html: body:"],
 			"Expected tag\n  (__TEMPLATE__), Line 1, Column 12\n  html: body:\n             ^\n",
@@ -146,15 +145,15 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("invalid tag in block expansion", () => {
-		assertSyntaxError(
+	test("invalid tag in block expansion", async () => {
+		await assertSyntaxError(
 			template,
 			["html: body: /comment"],
 			"Expected tag\n  (__TEMPLATE__), Line 1, Column 13\n  html: body: /comment\n              ^\n",
 			{},
 		);
 
-		assertSyntaxError(
+		await assertSyntaxError(
 			template,
 			["html: body:/comment"],
 			"Expected tag\n  (__TEMPLATE__), Line 1, Column 12\n  html: body:/comment\n             ^\n",
@@ -162,8 +161,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("unexpected text after closed", () => {
-		assertSyntaxError(
+	test("unexpected text after closed", async () => {
+		await assertSyntaxError(
 			template,
 			["img / text"],
 			"Unexpected text after closed tag\n  (__TEMPLATE__), Line 1, Column 7\n  img / text\n        ^\n",
@@ -171,8 +170,8 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("illegal shortcuts", () => {
-		assertSyntaxError(
+	test("illegal shortcuts", async () => {
+		await assertSyntaxError(
 			template,
 			[".#test"],
 			"Illegal shortcut\n  (__TEMPLATE__), Line 1, Column 1\n  .#test\n  ^\n",
@@ -180,15 +179,15 @@ describe("Parser errors", () => {
 		);
 	});
 
-	test("illegal shortcuts", () => {
-		assertSyntaxError(
+	test("illegal shortcuts", async () => {
+		await assertSyntaxError(
 			template,
 			[".#test"],
 			"Illegal shortcut\n  (__TEMPLATE__), Line 1, Column 1\n  .#test\n  ^\n",
 			{},
 		);
 
-		assertSyntaxError(
+		await assertSyntaxError(
 			template,
 			["div.#test"],
 			"Illegal shortcut\n  (__TEMPLATE__), Line 1, Column 4\n  div.#test\n     ^\n",

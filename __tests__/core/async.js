@@ -86,4 +86,77 @@ describe("Async/Await Support", () => {
 
 		expect(result).toBe("<li>A</li><li>B</li>");
 	});
+
+	describe("Regression Tests", () => {
+		test("implicit await for direct function call in renderAsync", async () => {
+			const src = "p = this.asyncMsg()";
+			const model = {
+				asyncMsg: async () => "Async Without Await Keyword",
+			};
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe("<p>Async Without Await Keyword</p>");
+		});
+
+		test("async block callback should be awaitable in helper", async () => {
+			const src = ["== this.wrap()", "  | Inner Content"].join("\n");
+
+			const model = {
+				wrap: async function (cb) {
+					const content = await cb();
+					return `<div class="wrapper">${content.toString().trim()}</div>`;
+				},
+			};
+
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe('<div class="wrapper">Inner Content</div>');
+		});
+
+		test("unescaped block output (==) should not be escaped", async () => {
+			const src = ["== this.box()", "  | <p>Raw</p>"].join("\n");
+
+			const model = {
+				box: async (cb) => {
+					const content = typeof cb === "function" ? await cb() : "";
+					return `<div class="box">${content}</div>`;
+				},
+			};
+
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe('<div class="box"><p>Raw</p></div>');
+		});
+
+		test("escaped block output (=) should be escaped", async () => {
+			const src = ["= this.box()", "  | <p>Escape Me</p>"].join("\n");
+
+			const model = {
+				box: async (cb) => {
+					const content = typeof cb === "function" ? await cb() : "";
+					return `<div class="box">${content}</div>`;
+				},
+			};
+
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe(
+				"&lt;div class=&quot;box&quot;&gt;&lt;p&gt;Escape Me&lt;/p&gt;&lt;/div&gt;",
+			);
+		});
+
+		test("implicit await for attribute value in renderAsync", async () => {
+			const src = "a href=this.asyncUrl() Link";
+			const model = {
+				asyncUrl: async () => "https://example.com",
+			};
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe('<a href="https://example.com">Link</a>');
+		});
+
+		test("implicit await for array attribute value in renderAsync", async () => {
+			const src = 'div class=["btn", this.asyncClass()]';
+			const model = {
+				asyncClass: async () => "btn-primary",
+			};
+			const result = await template.renderAsync(src, model);
+			expect(result).toBe('<div class="btn btn-primary"></div>');
+		});
+	});
 });

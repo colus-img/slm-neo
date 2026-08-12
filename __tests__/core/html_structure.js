@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml } from "../support/assertions.js";
 
 describe("Html structure", () => {
 	let template;
@@ -9,8 +9,8 @@ describe("Html structure", () => {
 		template = new Template(VMNode);
 	});
 
-	test("simple render", () => {
-		assertHtml(
+	test("simple render", async () => {
+		await assertHtml(
 			template,
 			[
 				"html",
@@ -24,8 +24,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("relaxed indentation of first line", () => {
-		assertHtml(
+	test("relaxed indentation of first line", async () => {
+		await assertHtml(
 			template,
 			["  p", "    .content"],
 			'<p><div class=\"content\"></div></p>',
@@ -33,8 +33,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("html tag with text and empty line", () => {
-		assertHtml(
+	test("html tag with text and empty line", async () => {
+		await assertHtml(
 			template,
 			["p Hello", "", "p World"],
 			"<p>Hello</p><p>World</p>",
@@ -42,8 +42,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("html namespaces", () => {
-		assertHtml(
+	test("html namespaces", async () => {
+		await assertHtml(
 			template,
 			["html:body", '  html:p html:id="test" Text'],
 			'<html:body><html:p html:id="test">Text</html:p></html:body>',
@@ -51,8 +51,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("doctype", () => {
-		assertHtml(
+	test("doctype", async () => {
+		await assertHtml(
 			template,
 			["doctype 1.1", "html"],
 			'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"><html></html>',
@@ -60,8 +60,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with shortcut attributes", () => {
-		assertHtml(
+	test("render with shortcut attributes", async () => {
+		await assertHtml(
 			template,
 			[
 				"h1#title This is my title",
@@ -73,8 +73,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with text block", () => {
-		assertHtml(
+	test("render with text block", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -86,8 +86,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with text block with subsequent markup", () => {
-		assertHtml(
+	test("render with text block with subsequent markup", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -100,8 +100,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with text block with subsequent markup", () => {
-		assertHtml(
+	test("render with text block with subsequent markup", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -114,8 +114,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with text block with trailing whitespace", () => {
-		assertHtml(
+	test("render with text block with trailing whitespace", async () => {
+		await assertHtml(
 			template,
 			[". this is", "  a link to", 'a href="link" page'],
 			'this is\na link to <a href="link">page</a>',
@@ -123,8 +123,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with text block with trailing whitespace", () => {
-		assertHtml(
+	test("render with text block with trailing whitespace", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -140,8 +140,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("nested text with nested html one same line", () => {
-		assertHtml(
+	test("nested text with nested html one same line", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -155,8 +155,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("nested text with nested html one same line 2", () => {
-		assertHtml(
+	test("nested text with nested html one same line 2", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -170,8 +170,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("nested text with nested html", () => {
-		assertHtml(
+	test("nested text with nested html", async () => {
+		await assertHtml(
 			template,
 			[
 				"p",
@@ -188,8 +188,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("simple paragraph with padding", () => {
-		assertHtml(
+	test("simple paragraph with padding", async () => {
+		await assertHtml(
 			template,
 			["p    There will be 3 spaces in front of this line."],
 			"<p>   There will be 3 spaces in front of this line.</p>",
@@ -197,8 +197,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("paragraph with nested text", () => {
-		assertHtml(
+	test("paragraph with nested text", async () => {
+		await assertHtml(
 			template,
 			["p This is line one.", "   This is line two."],
 			"<p>This is line one.\n This is line two.</p>",
@@ -206,8 +206,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("paragraph with padded nested text", () => {
-		assertHtml(
+	test("paragraph with padded nested text", async () => {
+		await assertHtml(
 			template,
 			["p  This is line one.", "   This is line two."],
 			"<p> This is line one.\n This is line two.</p>",
@@ -215,8 +215,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("labels with with br", () => {
-		assertHtml(
+	test("labels with with br", async () => {
+		await assertHtml(
 			template,
 			[
 				"label",
@@ -233,12 +233,17 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("with inline mustashe", () => {
-		assertHtml(template, ["label {{title}}"], "<label>{{title}}</label>", {});
+	test("with inline mustashe", async () => {
+		await assertHtml(
+			template,
+			["label {{title}}"],
+			"<label>{{title}}</label>",
+			{},
+		);
 	});
 
-	test("paragraph with attributes and nested text", () => {
-		assertHtml(
+	test("paragraph with attributes and nested text", async () => {
+		await assertHtml(
 			template,
 			[
 				'p#test class="paragraph" This is line one.',
@@ -249,8 +254,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("output code with leading spaces", () => {
-		assertHtml(
+	test("output code with leading spaces", async () => {
+		await assertHtml(
 			template,
 			["p= this.helloWorld", "p = this.helloWorld", "p    = this.helloWorld"],
 			"<p>Hello World from @env</p><p>Hello World from @env</p><p>Hello World from @env</p>",
@@ -258,15 +263,15 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("output code with leading spaces 2", () => {
-		assertHtml(
+	test("output code with leading spaces 2", async () => {
+		await assertHtml(
 			template,
 			["p =< this.helloWorld"],
 			" <p>Hello World from @env</p>",
 			{},
 		);
 
-		assertHtml(
+		await assertHtml(
 			template,
 			["p<= this.helloWorld"],
 			" <p>Hello World from @env</p>",
@@ -274,8 +279,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("single quoted attributes", () => {
-		assertHtml(
+	test("single quoted attributes", async () => {
+		await assertHtml(
 			template,
 			["p class='underscored_class_name' = this.outputNumber"],
 			'<p class="underscored_class_name">1337</p>',
@@ -283,8 +288,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("nonstandard shortcut attributes", () => {
-		assertHtml(
+	test("nonstandard shortcut attributes", async () => {
+		await assertHtml(
 			template,
 			["p#dashed-id.underscored_class_name = this.outputNumber"],
 			'<p class="underscored_class_name" id="dashed-id">1337</p>',
@@ -292,8 +297,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("dashed attributes", () => {
-		assertHtml(
+	test("dashed attributes", async () => {
+		await assertHtml(
 			template,
 			['p data-info="Illudium Q-36" = this.outputNumber'],
 			'<p data-info="Illudium Q-36">1337</p>',
@@ -301,8 +306,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("dashed attributes with shortcuts", () => {
-		assertHtml(
+	test("dashed attributes with shortcuts", async () => {
+		await assertHtml(
 			template,
 			['p#marvin.martian data-info="Illudium Q-36" = this.outputNumber'],
 			'<p class="martian" data-info="Illudium Q-36" id="marvin">1337</p>',
@@ -310,8 +315,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("parens around attributes", () => {
-		assertHtml(
+	test("parens around attributes", async () => {
+		await assertHtml(
 			template,
 			[
 				'p(id="marvin" class="martian" data-info="Illudium Q-36") = this.outputNumber',
@@ -321,8 +326,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("square brackets around attributes", () => {
-		assertHtml(
+	test("square brackets around attributes", async () => {
+		await assertHtml(
 			template,
 			[
 				'p[id="marvin" class="martian" data-info="Illudium Q-36"] = this.outputNumber',
@@ -332,8 +337,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("parens around attributes with equal sign snug to right paren", () => {
-		assertHtml(
+	test("parens around attributes with equal sign snug to right paren", async () => {
+		await assertHtml(
 			template,
 			[
 				'p(id="marvin" class="martian" data-info="Illudium Q-36")= this.outputNumber',
@@ -343,12 +348,12 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("closed tag", () => {
-		assertHtml(template, ["closed/"], "<closed />", {});
+	test("closed tag", async () => {
+		await assertHtml(template, ["closed/"], "<closed />", {});
 	});
 
-	test("attributes with parens and spaces", () => {
-		assertHtml(
+	test("attributes with parens and spaces", async () => {
+		await assertHtml(
 			template,
 			["label[ for='filter' ]= this.helloWorld"],
 			'<label for="filter">Hello World from @env</label>',
@@ -356,8 +361,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("attributes with parens and spaces 2", () => {
-		assertHtml(
+	test("attributes with parens and spaces 2", async () => {
+		await assertHtml(
 			template,
 			["label[ for='filter' ] = this.helloWorld"],
 			'<label for="filter">Hello World from @env</label>',
@@ -365,8 +370,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("attributes with multiple spaces", () => {
-		assertHtml(
+	test("attributes with multiple spaces", async () => {
+		await assertHtml(
 			template,
 			["label  for='filter'  class=\"test\" = this.helloWorld"],
 			'<label class="test" for="filter">Hello World from @env</label>',
@@ -374,16 +379,26 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("closed tag with attributes", () => {
-		assertHtml(template, ['closed id="test" /'], '<closed id="test" />', {});
+	test("closed tag with attributes", async () => {
+		await assertHtml(
+			template,
+			['closed id="test" /'],
+			'<closed id="test" />',
+			{},
+		);
 	});
 
-	test("closed tag with attributes and parens", () => {
-		assertHtml(template, ['closed(id="test")/'], '<closed id="test" />', {});
+	test("closed tag with attributes and parens", async () => {
+		await assertHtml(
+			template,
+			['closed(id="test")/'],
+			'<closed id="test" />',
+			{},
+		);
 	});
 
-	test("render with html comments", () => {
-		assertHtml(
+	test("render with html comments", async () => {
+		await assertHtml(
 			template,
 			["p Hello", "/! This is a comment", "", "   Another comment", "p World"],
 			"<p>Hello</p><!--This is a comment\n\nAnother comment--><p>World</p>",
@@ -391,8 +406,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with html conditional and tag", () => {
-		assertHtml(
+	test("render with html conditional and tag", async () => {
+		await assertHtml(
 			template,
 			["/[ if IE ]", " p Get a better browser."],
 			"<!--[if IE]><p>Get a better browser.</p><![endif]-->",
@@ -400,8 +415,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("render with html conditional and method output", () => {
-		assertHtml(
+	test("render with html conditional and method output", async () => {
+		await assertHtml(
 			template,
 			["/[ if IE ]", " = this.message('hello')"],
 			"<!--[if IE]>hello<![endif]-->",
@@ -409,8 +424,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with method", () => {
-		assertHtml(
+	test("multiline attributes with method", async () => {
+		await assertHtml(
 			template,
 			[
 				'p(id="marvin"',
@@ -422,8 +437,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with text on same line", () => {
-		assertHtml(
+	test("multiline attributes with text on same line", async () => {
+		await assertHtml(
 			template,
 			[
 				'p[id="marvin"',
@@ -435,8 +450,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with nested text", () => {
-		assertHtml(
+	test("multiline attributes with nested text", async () => {
+		await assertHtml(
 			template,
 			[
 				'p(id="marvin"',
@@ -449,8 +464,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with dynamic attr", () => {
-		assertHtml(
+	test("multiline attributes with dynamic attr", async () => {
+		await assertHtml(
 			template,
 			[
 				"p[id=this.idHelper",
@@ -463,8 +478,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with nested tag", () => {
-		assertHtml(
+	test("multiline attributes with nested tag", async () => {
+		await assertHtml(
 			template,
 			[
 				"p(id=this.idHelper",
@@ -478,8 +493,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("multiline attributes with nested text and extra indentation", () => {
-		assertHtml(
+	test("multiline attributes with nested text and extra indentation", async () => {
+		await assertHtml(
 			template,
 			[
 				'li( id="myid"',
@@ -492,8 +507,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("block expansion support", () => {
-		assertHtml(
+	test("block expansion support", async () => {
+		await assertHtml(
 			template,
 			[
 				"ul",
@@ -506,8 +521,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("block expansion class attributes", () => {
-		assertHtml(
+	test("block expansion class attributes", async () => {
+		await assertHtml(
 			template,
 			[".a: .b: #c d"],
 			'<div class="a"><div class="b"><div id="c">d</div></div></div>',
@@ -515,8 +530,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("block expansion nesting", () => {
-		assertHtml(
+	test("block expansion nesting", async () => {
+		await assertHtml(
 			template,
 			["html: body: .content", "  | Text"],
 			'<html><body><div class=\"content\">Text</div></body></html>',
@@ -524,8 +539,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("eval attributes once", () => {
-		assertHtml(
+	test("eval attributes once", async () => {
+		await assertHtml(
 			template,
 			["input[value=++this.x]", "input[value=++this.x]"],
 			'<input value="1" /><input value="2" />',
@@ -533,8 +548,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("html line indicator", () => {
-		assertHtml(
+	test("html line indicator", async () => {
+		await assertHtml(
 			template,
 			[
 				"<html>",
@@ -550,8 +565,8 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("html line indicator issue #4", () => {
-		assertHtml(
+	test("html line indicator issue #4", async () => {
+		await assertHtml(
 			template,
 			["<script>", "  | var a=b;", "</script>"],
 			"<script>var a=b;</script>",
@@ -559,20 +574,20 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("leading whitespace indicator on tag", () => {
-		assertHtml(template, ["p< text"], " <p>text</p>", {});
+	test("leading whitespace indicator on tag", async () => {
+		await assertHtml(template, ["p< text"], " <p>text</p>", {});
 	});
 
-	test("trailing whitespace indicator on tag", () => {
-		assertHtml(template, ["p> text"], "<p>text</p> ", {});
+	test("trailing whitespace indicator on tag", async () => {
+		await assertHtml(template, ["p> text"], "<p>text</p> ", {});
 	});
 
-	test("trailing whitespace with code", () => {
-		assertHtml(template, ['p => "text"'], "<p>text</p> ", {});
-		assertHtml(template, ['p> = "text"'], "<p>text</p> ", {});
+	test("trailing whitespace with code", async () => {
+		await assertHtml(template, ['p => "text"'], "<p>text</p> ", {});
+		await assertHtml(template, ['p> = "text"'], "<p>text</p> ", {});
 	});
 
-	test("test context", () => {
+	test("test context", async () => {
 		const VM = template.VM;
 		const vm = new VM();
 		vm.resetCache();
@@ -647,7 +662,7 @@ describe("Html structure", () => {
 		);
 	});
 
-	test("test current context in partials by default", () => {
+	test("test current context in partials by default", async () => {
 		const VM = template.VM;
 		const vm = new VM();
 		vm.resetCache();

@@ -1,6 +1,6 @@
 import VMNode from "../../lib/vm_node.js";
 import Template from "../../lib/template.js";
-import { assertHtml } from "../helper.js";
+import { assertHtml } from "../support/assertions.js";
 
 describe("Html attribtues", () => {
 	let template;
@@ -61,6 +61,15 @@ describe("Html attribtues", () => {
 			["p id=(false ? 'notshown' : 'shown') = this.outputNumber"],
 			'<p id="shown">1337</p>',
 			{},
+		);
+	});
+
+	test("non-merge dynamic attribute with async mode", async () => {
+		await assertHtml(
+			template,
+			["p myattr=(this.outputNumber) = this.outputNumber"],
+			'<p myattr="1337">1337</p>',
+			{ asyncOnly: true },
 		);
 	});
 

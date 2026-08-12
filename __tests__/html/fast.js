@@ -27,10 +27,31 @@ describe("Fast", () => {
 		]);
 	});
 
+	test("throws on invalid xml directive in html mode", () => {
+		const htmlFilter = new Filter({ format: "html" });
+		htmlFilter._format = "html";
+		expect(() => htmlFilter.exec(["html", "doctype", "xml"])).toThrow(
+			"Invalid xml directive in html mode",
+		);
+	});
+
+	test("throws on invalid doctype", () => {
+		expect(() => filter.exec(["html", "doctype", "invaliddoctype"])).toThrow(
+			"Invalid doctype invaliddoctype",
+		);
+	});
+
 	test("compile xml encoding", () => {
 		expect(filter.exec(["html", "doctype", "xml latin1"])).toEqual([
 			"static",
 			'<?xml version="1.0" encoding="latin1" ?>',
+		]);
+	});
+
+	test("compile xml default encoding", () => {
+		expect(filter.exec(["html", "doctype", "xml"])).toEqual([
+			"static",
+			'<?xml version="1.0" encoding="utf-8" ?>',
 		]);
 	});
 
