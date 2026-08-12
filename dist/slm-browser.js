@@ -688,7 +688,10 @@ return ${callMethod || "exps"};}`;
           const tmp = this._uniqueName();
           return [
             "multi",
-            ["code", `var ${tmp}=${this.options.useAsync ? "await " : ""}${code}`],
+            [
+              "code",
+              `var ${tmp}=${this.options.useAsync ? "await " : ""}${code}`
+            ],
             [
               "switch",
               tmp,
@@ -1157,11 +1160,7 @@ return ${callMethod || "exps"};}`;
         str = res[0];
         code = res[1];
         const escape2 = code[0] !== "=";
-        code = parsePipeline(
-          escape2 ? code : code.slice(1),
-          null,
-          this.options
-        );
+        code = parsePipeline(escape2 ? code : code.slice(1), null, this.options);
         block.push(["slm", "output", escape2, code, ["multi"]]);
       } else {
         m = staticTextRe.exec(str);
